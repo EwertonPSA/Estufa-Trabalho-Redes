@@ -61,6 +61,9 @@ public class SensorTemperatura extends Thread{
 			TimeUnit.SECONDS.sleep(1);
 			try {/*Leitura do arquivo de temperatura*/
 				msgSensor = header + idEquipamento + readFileTemperatura();//Header + id + temperatura
+									// temperatura deve possuir 4 bytes
+									// lembrar de adicionar zeros na esquerda
+									// NAO ESQUECE
 			}catch(Exception e) {
 				System.out.println("Problema ao abrir o arquivo para leitura!");
 				return;

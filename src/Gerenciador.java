@@ -20,15 +20,15 @@ import java.util.Scanner;
 import java.util.Set;
 
 public class Gerenciador{
-	static SocketChannel sensorTemperatura = null;
-	static SocketChannel sensorUmidade = null;
-	static SocketChannel sensorC02 = null;
-	static SocketChannel aquecedor = null;
-	static SocketChannel resfriador = null;
-	static SocketChannel irrigador = null;
-	static SocketChannel injetorC02 = null;
-	static ByteBuffer msgSensorTemperatura;
-	static Map<SocketAddress, Integer> equipaments = null;//Cada endereço remoto associo a um equipamento, assim quando um canal enviar uma msg vou identifica-lo pelo endereço remoto
+	private static SocketChannel sensorTemperatura = null;
+	private static SocketChannel sensorUmidade = null;
+	private static SocketChannel sensorC02 = null;
+	private static SocketChannel aquecedor = null;
+	private static SocketChannel resfriador = null;
+	private static SocketChannel irrigador = null;
+	private static SocketChannel injetorC02 = null;
+	private static ByteBuffer msgSensorTemperatura;
+	static Map<SocketAddress, Integer> equipaments = null;//Cada endereço remoto esta associado a um equipamento, assim quando um canal pedir uma msg vou identifica-lo pelo endereço remoto
 	
 	private static void register(Selector selector, ServerSocketChannel serverSocket) throws IOException {
         SocketChannel client = serverSocket.accept();//Abre um socket pro canal
@@ -41,12 +41,11 @@ public class Gerenciador{
 		SocketChannel client = (SocketChannel) key.channel();
 		byte[] arr;
 		int byteReceive = 0;
-
 		do {
 			byteReceive = client.read(buffer);
 		}while(byteReceive <= 0);
-		arr = buffer.array();
 
+		arr = buffer.array();
 		if(arr[0] == '1'){
 			System.out.println("Id do equipamento conectado: " + (arr[1] - '0'));
 			SocketAddress clientAddress  = client.getRemoteAddress();//Pego o endereço remoto do equipamento
@@ -79,9 +78,10 @@ public class Gerenciador{
 			
 			buffer = ByteBuffer.wrap("2".getBytes());//Repassa a string "2" em bytes e joga pro buffer
 	        client.write(buffer);//Envia a mensagem de confirmaçao pro cliente
-		}else{
+		}else if(arr[0] == '3'){//Leitura dos sensores
 			SocketAddress clientAddress  = client.getRemoteAddress();//Pego o endereço remoto do equipamento
 			Integer id = equipaments.get(clientAddress);/*Pega o id associado ao endereço remoto do equipamento*/
+
 			switch(id) {
 				case 1:	
 					msgSensorTemperatura = buffer;
@@ -96,13 +96,9 @@ public class Gerenciador{
 					System.out.println();
 					break;
 				case 4:
-					System.out.println(client.isConnected());
-					client.read(buffer);
-					buffer.flip();
-					
-					aquecedor.write(buffer);
-					buffer.clear();
-					System.out.println("Atuador de aquecimento conectado!");
+					System.out.println("Recebido do sensor de temperatura" + arr);
+					//aquecedor.write(buffer);
+					//buffer.clear();
 					break;
 				case 5:
 					

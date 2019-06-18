@@ -20,14 +20,36 @@ import java.util.concurrent.TimeUnit;
 public class Aquecedor extends Thread{
 	private InetSocketAddress hostAddress = null;
 	private SocketChannel client = null;
-	private String path = "temperatura.txt";/*arquivo que simula temperatura*/
-	private File arqTemperatura;
-	
-	/* Cria o arquivo que simula temperatura*/
-	private void createFile() throws IOException {
-		arqTemperatura = new File(path);
+	private Temperatura temperatura = null;
+	private boolean statusEquip;
+	private String header;
+	private String idEquipamento = "4";
+
+	public Aquecedor() throws IOException {
+		try {
+			temperatura = new Temperatura();
+		}catch(Exception e) {
+			System.out.println("Problema ao criar arquivo de temperatura!");
+			return;
+		}
+		this.setStatusEquip(false);//Equipamento inicia desligado
+		this.hostAddress = new InetSocketAddress("127.0.0.1", 9545);
+		this.client = SocketChannel.open(hostAddress);
+		this.client.configureBlocking(false);
+		if(client.isConnectionPending())//Caso a conexao nao tenha sido finalizada
+			client.finishConnect();
+		
+		header = "1";
+		client.write(ByteBuffer.wrap((header + idEquipamento).getBytes()));//Manda a mensagem de Identificacao: header + id
 	}
 	
+	private boolean getStatusEquip() {
+		return statusEquip;
+	}
+	
+	private void setStatusEquip(boolean statusEquip) {
+		this.statusEquip = statusEquip;
+	}
 
 	private Integer trataTemperatura(Integer temperaturaAtual) {
 		return temperaturaAtual+1;
@@ -35,18 +57,8 @@ public class Aquecedor extends Thread{
 	
 	/*Faz a alteracao da temperatura */
 	public void updateTemperatura() {
-		
-		if(arqTemperatura == null) {
-			try{
-				createFile();
-			}catch(Exception e) {
-				System.out.println("Problema ao criar arquivo de temperatura!");
-				return;
-			}
-		}
-		
-		try {
-			FileReader fr = new FileReader(arqTemperatura);
+		try {/*Le o arquivo, pega a temperatura atual e aumenta*/
+			FileReader fr = new FileReader(temperatura.getArqTemperatura());
 			BufferedReader buffRead = new BufferedReader(fr);
 			Integer temperaturaAtual = Integer.parseInt(buffRead.readLine());//Le a linha e repassa para inteiro
 			System.out.println("Lido no arquivo: " + temperaturaAtual);
@@ -55,7 +67,7 @@ public class Aquecedor extends Thread{
 			
 			if(!this.isInterrupted()) {/*Se a thread nao for interrompida*/
 				System.out.println("Escrevendo no arquivo: " + temperaturaAtual);
-				FileWriter fw = new FileWriter(arqTemperatura);
+				FileWriter fw = new FileWriter(temperatura.getArqTemperatura());
 				BufferedWriter buffWrite = new BufferedWriter(fw);
 				buffWrite.append(temperaturaAtual.toString() + '\n');
 				buffWrite.close();
@@ -67,50 +79,22 @@ public class Aquecedor extends Thread{
 	}
 
 
-
-	public Aquecedor() throws IOException {
-		try {
-			createFile();
-		}catch(Exception e) {
-			System.out.println("Problema ao criar arquivo de temperatura!");
-			return;
-		}
-		
-		this.hostAddress = new InetSocketAddress("127.0.0.1", 9545);
-		this.client = SocketChannel.open(hostAddress);
-		this.client.configureBlocking(false);
-		if(client.isConnectionPending())//Caso a conexao nao tenha sido finalizada
-			client.finishConnect();
-		client.write(ByteBuffer.wrap("14".getBytes()));//Manda a mensagem de Identificacao: header + id
-	}
-
 	public SocketChannel getClient() {
 		return client;
 	}
 	
-	/* A Thread eh executada toda vez que o gerenciador informar
-	 * Para o equipamento estar ligado
-	 * A Thread cuida apenas de escrever dados no arquivo para
-	 * Simular a temperatura
-	 * A Thread eh interrompida toda vez que o gerenciador
-	 * Pedir pro equipamento ser desligado*/
 	@Override
 	public void run() {
 		System.out.println("Atuador ligado!");
 		while(!this.isInterrupted()) {
 			try {
 				TimeUnit.SECONDS.sleep(1);
+				if(getStatusEquip())//Se o equipamento estiver ativo
+					updateTemperatura();
 			} catch (InterruptedException e1) {
-				/*Trata interrupcao da thread dentro do sleep*/
 				return;
 			}
-			updateTemperatura();
 		}
-	}
-	
-	private void offEquip() {
-		this.interrupt();
-		System.out.println("Atuador desligado!");
 	}
 
 	public void communicate(){
@@ -130,9 +114,9 @@ public class Aquecedor extends Thread{
 				if(msgGerenciador[0] == '2') {
 					System.out.println("Aquecedor foi identificado pelo servidor");
 				}else if(msgGerenciador[0] == '5') {//Comando de desativacao do equipamento
-					offEquip();
+					setStatusEquip(false);//desativa equipamento
 				}else if(msgGerenciador[0] == '4') {
-					this.start();
+					setStatusEquip(true);//ativa equipamento
 				}
 			} catch (IOException e) {
 				System.out.println("Servidor foi desconectado, desligando equipamento!");
@@ -147,10 +131,13 @@ public class Aquecedor extends Thread{
 			atuador = new Aquecedor();
 			atuador.start();
 			Scanner in = new Scanner(System.in);
+			atuador.setStatusEquip(true);
 			in.next();
-			atuador.offEquip();
-			atuador.start();
+			atuador.setStatusEquip(false);
 			in.next();
+			atuador.setStatusEquip(true);
+			in.next();
+			//atuador.communicate();
 		}catch(Exception e) {
 			System.out.println("Deu problema no atuador");
 			e.printStackTrace();

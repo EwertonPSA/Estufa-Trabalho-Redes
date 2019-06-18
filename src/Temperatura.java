@@ -23,3 +23,9 @@ public class Temperatura {
 		arqTemperatura = new File(path);
 	}
 }
+
+//temperatura vai ter o ambiente e vai sempre realizar alteracao na temperatura
+//aquecedor vai só alterar o fator de contribuicao
+//fator de contribuição do ambiente: 1
+//fator de contribuição dos atuadores: 2
+//ambiente será uma thread na classe da temperatura

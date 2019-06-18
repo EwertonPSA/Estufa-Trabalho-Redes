@@ -52,30 +52,32 @@ public class Gerenciador{
 			client.read(buffer);//le e Repassa pro buffer o que foi enviado pelo cliente
 			buffer.flip();//Vai pra posicao zero do buffer
 			equipaments.put(clientAddress, arr[1]-'0');/*Registra a SelectionKey associado a esse equiamento na Map*/
-			switch(arr[1]) {/*Registra os canais de comunica, assim quando um SelectionKey de sensorTemperatura vier, por ex, ja repassarei para o aquecedor(se for necessario) */
-				// LREBAR DE VERIFICAR O ID NA MENSAGEM
-				case '1':
-					sensorTemperatura = client;
-					break;
-				case '2':
-					sensorUmidade = client;
-					break;
-				case '3':
-					sensorC02 = client;
-					break;
-				case '4':
-					aquecedor = client;
-					break;
-				case '5':
-					resfriador = client;
-					break;
-				case '6':
-					irrigador = client;
-					break;
-				case '7':
-					injetorC02 = client;
-					break;
+			
+			/*Registra os canais de comunica, assim quando um SelectionKey de sensorTemperatura vier, por ex, ja repassarei para o aquecedor(se for necessario) */
+			// LREBAR DE VERIFICAR O ID NA MENSAGEM
+			if(arr[1] == '1'){
+				sensorTemperatura = client;
 			}
+			else if(arr[1] == '2'){
+				sensorUmidade = client;
+			}
+			else if(arr[1] == '3'){
+				sensorC02 = client;
+			}
+			else if(arr[1] == '4'){
+				aquecedor = client;
+			}
+			else if(arr[1] == '5'){
+				resfriador = client;
+			}
+			else if(arr[1] == '6'){
+				irrigador = client;
+			}
+			else if(arr[1] == '7'){
+				injetorC02 = client;
+			}
+			
+
 			
 			buffer = ByteBuffer.wrap("2".getBytes());//Repassa a string "2" em bytes e joga pro buffer
 	        client.write(buffer);//Envia a mensagem de confirmaçao pro cliente
@@ -83,36 +85,33 @@ public class Gerenciador{
 			SocketAddress clientAddress  = client.getRemoteAddress();//Pego o endereço remoto do equipamento
 			Integer id = equipaments.get(clientAddress);/*Pega o id associado ao endereço remoto do equipamento*/
 
-			switch(id) {
-				case 1:	
-					msgSensorTemperatura = buffer;
-					String msgServer = new String(msgSensorTemperatura.array());
-					System.out.println("Resposta do servidor:" + msgServer);
-					break;
-				case 2:
-					
-					break;
-				case 3:
-					
-					System.out.println();
-					break;
-				case 4:
-					System.out.println("Recebido do sensor de temperatura" + arr);
-					//aquecedor.write(buffer);
-					//buffer.clear();
-					break;
-				case 5:
-					
-					System.out.println();
-					break;
-				case 6:
-					
-					System.out.println();
-					break;
-				case 7:
-					
-					System.out.println();
-					break;
+			if(id == 1 && arr[1] == '1'){
+				msgSensorTemperatura = buffer;
+				String msgServer = new String(msgSensorTemperatura.array());
+				System.out.println("Resposta do servidor:" + msgServer);
+			}
+			else if(id == 2 && arr[1] == '2'){
+				System.out.println();
+			}
+			else if(id == 3 && arr[1] == '3'){
+
+			}
+			else if(id == 4 && arr[1] == '4'){
+				System.out.println("Recebido do sensor de temperatura" + arr);
+				//aquecedor.write(buffer);
+				//buffer.clear();
+			}
+			else if(id == 5 && arr[1] == '5'){
+				System.out.println();
+			}
+			else if(id == 6 && arr[1] == '6'){
+				System.out.println();
+			}
+			else if(id == 7 && arr[1] == '7'){
+				System.out.println();
+			}
+			else{
+				//algum erro
 			}
 		}
 	}

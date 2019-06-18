@@ -15,14 +15,12 @@ import java.util.concurrent.TimeUnit;
 public class SensorTemperatura extends Thread{
 	public InetSocketAddress hostAddress = null;
 	public SocketChannel client = null;
-	private Temperatura temperatura = null;
 	private String idEquipamento = "1";
 	private String header;
 	
 	public SensorTemperatura() throws IOException{
 		byte msgServerByte[];
 		ByteBuffer msgServer;
-		temperatura = new Temperatura();
 		this.hostAddress = new InetSocketAddress("127.0.0.1", 9545);
 		this.client = SocketChannel.open(hostAddress);
 		this.client.configureBlocking(false);
@@ -44,13 +42,35 @@ public class SensorTemperatura extends Thread{
 		}
 	}
 	
-	private String readFileTemperatura() throws FileNotFoundException, IOException {
-		FileReader fr = new FileReader(temperatura.getArqTemperatura());
+	private byte[] readFileTemperatura() throws FileNotFoundException, IOException {
+		FileReader fr = new FileReader(Temperatura.getArqTemperatura());
 		BufferedReader buffRead = new BufferedReader(fr);
 		String temperatura =  buffRead.readLine();//Le a linha e repassa para inteiro
-		return temperatura;
+		Integer temperaturaInt = Integer.parseInt(temperatura);
+		System.out.println(temperaturaInt);
+		byte[] sequenciaNumero = intToByte(temperaturaInt);
+		System.out.println(sequenciaNumero);
+		return sequenciaNumero;
 	}
 	
+	private byte[] intToByte(Integer temperaturaInt) {
+		int aux = temperaturaInt;
+		byte[] seqNumero = new byte[4];
+		for(int i = 0; i < 4; i++) {
+			seqNumero[i] = (byte)(aux>>(i*8) & 0xff);
+		}
+		return seqNumero;
+	}
+	
+	private Integer byteToInt(byte[] seqNumero) {
+		int aux2 = 0;
+		for(int i = 3; i >= 0; i--) {
+			aux2 = aux2<<8;
+			aux2 = aux2 + seqNumero[i];
+		}
+		return aux2;
+	}
+
 	public void communicate() throws InterruptedException {
 		ByteBuffer buffer = ByteBuffer.allocate(256);
 		int byteRead = 0;
@@ -61,9 +81,6 @@ public class SensorTemperatura extends Thread{
 			TimeUnit.SECONDS.sleep(1);
 			try {/*Leitura do arquivo de temperatura*/
 				msgSensor = header + idEquipamento + readFileTemperatura();//Header + id + temperatura
-									// temperatura deve possuir 4 bytes
-									// lembrar de adicionar zeros na esquerda
-									// NAO ESQUECE
 			}catch(Exception e) {
 				System.out.println("Problema ao abrir o arquivo para leitura!");
 				return;

@@ -17,21 +17,16 @@ import java.util.Scanner;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+/* CORRIGIR: Nao precisa mais escrever no arquivo, basta ir na temperatura
+ * E adicionar o fator de contribuicao*/
 public class Aquecedor extends Thread{
 	private InetSocketAddress hostAddress = null;
 	private SocketChannel client = null;
-	private Temperatura temperatura = null;
 	private boolean statusEquip;
 	private String header;
 	private String idEquipamento = "4";
 
 	public Aquecedor() throws IOException {
-		try {
-			temperatura = new Temperatura();
-		}catch(Exception e) {
-			System.out.println("Problema ao criar arquivo de temperatura!");
-			return;
-		}
 		this.setStatusEquip(false);//Equipamento inicia desligado
 		this.hostAddress = new InetSocketAddress("127.0.0.1", 9545);
 		this.client = SocketChannel.open(hostAddress);
@@ -58,7 +53,7 @@ public class Aquecedor extends Thread{
 	/*Faz a alteracao da temperatura */
 	public void updateTemperatura() {
 		try {/*Le o arquivo, pega a temperatura atual e aumenta*/
-			FileReader fr = new FileReader(temperatura.getArqTemperatura());
+			FileReader fr = new FileReader(Temperatura.getArqTemperatura());
 			BufferedReader buffRead = new BufferedReader(fr);
 			Integer temperaturaAtual = Integer.parseInt(buffRead.readLine());//Le a linha e repassa para inteiro
 			System.out.println("Lido no arquivo: " + temperaturaAtual);
@@ -67,13 +62,14 @@ public class Aquecedor extends Thread{
 			
 			if(!this.isInterrupted()) {/*Se a thread nao for interrompida*/
 				System.out.println("Escrevendo no arquivo: " + temperaturaAtual);
-				FileWriter fw = new FileWriter(temperatura.getArqTemperatura());
+				FileWriter fw = new FileWriter(Temperatura.getArqTemperatura());
 				BufferedWriter buffWrite = new BufferedWriter(fw);
 				buffWrite.append(temperaturaAtual.toString() + '\n');
 				buffWrite.close();
 			}
 		} catch (IOException e) {
 			System.out.println("Problema de escrita no arquivo!");
+			e.printStackTrace();
 			return;
 		}
 	}

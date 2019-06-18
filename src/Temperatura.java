@@ -1,9 +1,14 @@
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 public class Temperatura {
 	private static String path = "temperatura.txt";/*arquivo que simula temperatura*/
-	private static File arqTemperatura;
+	private static File arqTemperatura = null;
 	
 	public static String getPath() {
 		return path;
@@ -21,11 +26,23 @@ public class Temperatura {
 
 	private static void createFile() throws IOException {
 		arqTemperatura = new File(path);
+		/*FileWriter fw = new FileWriter(arqTemperatura);
+		BufferedWriter buffWrite = new BufferedWriter(fw);
+		buffWrite.append('\n');
+		buffWrite.close();*/
+	}
+	
+	public static void main(String[] argc) throws IOException {
+		Integer temperatura = -1;
+		//byte[] msg = ByteBuffer.allocate(4).putInt(temperatura).array();
+		FileWriter fw = new FileWriter(Temperatura.getArqTemperatura());
+		BufferedWriter buffWrite = new BufferedWriter(fw);
+		buffWrite.append(temperatura.toString() + '\n');
+		buffWrite.close();
+		
+		FileReader fr = new FileReader(Temperatura.getArqTemperatura());
+		BufferedReader buffRead = new BufferedReader(fr);
+		String msg = buffRead.readLine();
+		System.out.println(Integer.parseInt(msg));
 	}
 }
-
-//temperatura vai ter o ambiente e vai sempre realizar alteracao na temperatura
-//aquecedor vai só alterar o fator de contribuicao
-//fator de contribuição do ambiente: 1
-//fator de contribuição dos atuadores: 2
-//ambiente será uma thread na classe da temperatura

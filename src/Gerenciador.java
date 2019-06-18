@@ -19,7 +19,7 @@ import java.util.Scanner;
 //As threads dos clientes devem chamar o método e esse método passa pros demais
 import java.util.Set;
 
-public class Gerenciador{//Server master, com ele consigo conectar varios clientes e tambem desconecta-los
+public class Gerenciador{
 	static SocketChannel sensorTemperatura = null;
 	static SocketChannel sensorUmidade = null;
 	static SocketChannel sensorC02 = null;
@@ -28,7 +28,6 @@ public class Gerenciador{//Server master, com ele consigo conectar varios client
 	static SocketChannel irrigador = null;
 	static SocketChannel injetorC02 = null;
 	static ByteBuffer msgSensorTemperatura;
-	
 	static Map<SocketAddress, Integer> equipaments = null;//Cada endereço remoto associo a um equipamento, assim quando um canal enviar uma msg vou identifica-lo pelo endereço remoto
 	
 	private static void register(Selector selector, ServerSocketChannel serverSocket) throws IOException {
@@ -37,17 +36,22 @@ public class Gerenciador{//Server master, com ele consigo conectar varios client
         client.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);//Coloca um selector pra monitor esse socket
     }
 	
-	public static void receive(SelectionKey key, ByteBuffer buffer) throws IOException {
+	public static void receive(SelectionKey key) throws IOException {
+		ByteBuffer buffer = ByteBuffer.allocate(256);
 		SocketChannel client = (SocketChannel) key.channel();
-		SocketAddress clientAddress  = client.getRemoteAddress();//Pego o endereço remoto do equipamento
-		Integer idEquipaments = equipaments.get(clientAddress);//Busca o id do equipamento associado ao enderço remoto
-		if(idEquipaments == null){//Se o selector(canal de escuta de um socket) nao se encontra no Map eh pq o equipamento esta enviando a mensagem de identificacao]
-			
-			client.read(buffer);//le e Repassa pro buffer o que foi enviado pelo cliente
-			buffer.flip();
-			byte[] arr = buffer.array();
+		byte[] arr;
+		int byteReceive = 0;
+
+		do {
+			byteReceive = client.read(buffer);
+		}while(byteReceive <= 0);
+		arr = buffer.array();
+
+		if(arr[0] == '1'){
 			System.out.println("Id do equipamento conectado: " + (arr[1] - '0'));
-			
+			SocketAddress clientAddress  = client.getRemoteAddress();//Pego o endereço remoto do equipamento
+			client.read(buffer);//le e Repassa pro buffer o que foi enviado pelo cliente
+			buffer.flip();//Vai pra posicao zero do buffer
 			equipaments.put(clientAddress, arr[1]-'0');/*Registra a SelectionKey associado a esse equiamento na Map*/
 			switch(arr[1]) {/*Registra os canais de comunica, assim quando um SelectionKey de sensorTemperatura vier, por ex, ja repassarei para o aquecedor(se for necessario) */
 				case '1':
@@ -75,15 +79,12 @@ public class Gerenciador{//Server master, com ele consigo conectar varios client
 			
 			buffer = ByteBuffer.wrap("2".getBytes());//Repassa a string "2" em bytes e joga pro buffer
 	        client.write(buffer);//Envia a mensagem de confirmaçao pro cliente
-	        buffer.clear();
-		}else {
+		}else{
+			SocketAddress clientAddress  = client.getRemoteAddress();//Pego o endereço remoto do equipamento
 			Integer id = equipaments.get(clientAddress);/*Pega o id associado ao endereço remoto do equipamento*/
-			int byteRead;
 			switch(id) {
 				case 1:	
-					do {
-						byteRead = client.read(msgSensorTemperatura);
-					}while(byteRead > 0);
+					msgSensorTemperatura = buffer;
 					String msgServer = new String(msgSensorTemperatura.array());
 					System.out.println("Resposta do servidor:" + msgServer);
 					break;
@@ -119,16 +120,12 @@ public class Gerenciador{//Server master, com ele consigo conectar varios client
 		}
 	}
 	
-	public static void send(SelectionKey key, ByteBuffer buffer) throws IOException {
+	public static void send(SelectionKey key) throws IOException {
 		SocketChannel client = (SocketChannel) key.channel();
 		SocketAddress clientAddress  = client.getRemoteAddress();//Pego o endereço remoto do equipamento
 		Integer idEquipaments = equipaments.get(clientAddress);//Busca o id do equipamento associado ao enderço remoto
-		
-		if(idEquipaments == null) return;//Caso o equipamento nao tenha sido identificado
-		
-		Integer id = equipaments.get(clientAddress);/*Pega o id associado ao endereço remoto do equipamento*/
-		
-		switch(id) {
+		if(idEquipaments == null) return;//Caso o equipamento solicite a leitura mas nao tenha sido identificado
+		switch(idEquipaments) {
 			case 1:	
 				break;
 			case 2:
@@ -137,13 +134,16 @@ public class Gerenciador{//Server master, com ele consigo conectar varios client
 			case 3:
 				break;
 			case 4:
-				if(msgSensorTemperatura.position() != 0) {
+				if(msgSensorTemperatura.position() != 0) {//Se houver mensagem a ser repassada pro sensor de temperatura
 					String msgServer = new String(msgSensorTemperatura.array());
 					System.out.println("Enviando: " + msgServer);
-					
-					msgSensorTemperatura.flip();
-					aquecedor.write(msgSensorTemperatura);
-					msgSensorTemperatura.clear();
+					try {//Tenta enviar os dados para o aquecedor
+						msgSensorTemperatura.flip();
+						aquecedor.write(msgSensorTemperatura);
+						msgSensorTemperatura.clear();
+					}catch(Exception e) {
+						System.out.println("Aquecedor nao se encontra conectado");
+					}
 				}
 				break;
 			case 5:
@@ -162,7 +162,6 @@ public class Gerenciador{//Server master, com ele consigo conectar varios client
 	}
 	
 	public static void main(String[] argc) throws IOException{
-		ByteBuffer buffer = ByteBuffer.allocate(256);
 		msgSensorTemperatura = ByteBuffer.allocate(256);
 		Selector selector  = Selector.open();
 		ServerSocketChannel serverSocket = ServerSocketChannel.open();
@@ -186,26 +185,30 @@ public class Gerenciador{//Server master, com ele consigo conectar varios client
 					try {
 						register(selector, serverSocket);
 					}catch(Exception e) {
-						
-						System.out.println("Problema no registro do cliente");
+						System.out.println("Problema no registro do socket do cliente");
 					}
 				}
 				
-				if(key.isReadable()) {//Algum canal se comunicou
+				if(key.isValid() && key.isReadable()) {//Algum canal se comunicou
 					try{
-						receive(key, buffer);
+						receive(key);
 					}catch(Exception e) {
-						e.printStackTrace();
-						System.out.println("Problema de comunicação com cliente");
+						/* Se o Equipamento desligar e for captado algo no canal
+						 * Vai acontecer problema de leitura, aqui trato a desconexao com o canal do equipamento*/
+						System.out.println("Equipamento foi desconectado!");
+						SocketChannel client = (SocketChannel) key.channel();
+						client.close();
 					}
 				}
 				
-				if(key.isWritable()) {
+				if(key.isValid() && key.isWritable()) {
 					try {
-						send(key, buffer);
+						send(key);
 					}catch(Exception e) {
-						e.printStackTrace();
-						System.out.println("Problema de comunicação com cliente");
+						/* Se o Equipamento desligar antes de receber os dados no canal
+						 * Vai acontecer problema de envio, aqui trato a desconexao do canal do equipamento*/
+						System.out.println("Equipamento foi desconectado!");
+						((SocketChannel) key.channel()).close();
 					}
 				}
 				it.remove();

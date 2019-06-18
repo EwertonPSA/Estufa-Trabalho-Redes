@@ -55,7 +55,6 @@ public class TemperaturaInterna extends Thread{
 		}
 		
 		try {
-			
 			client.close();
 		}catch(Exception e) {;}
 	}

@@ -46,8 +46,8 @@ public class Aquecedor{
 				}else		
 					System.out.println("Resposta do servidor:" + msgServer);
 			} catch (IOException e) {
-
-				e.printStackTrace();
+				System.out.println("Servidor foi desconectado!");
+				return;
 			}
 		}
 	}
@@ -57,31 +57,9 @@ public class Aquecedor{
 		try{
 			atuador = new Aquecedor();
 			//Aciono uma thread que fecha o canal quando finalizar o programa
-			Runtime.getRuntime().addShutdownHook(new ShutDownTask(atuador.getClient()));//Acionado quando da CTRL+C ***NO TERMINAL***
 			atuador.communicate();
 		}catch(Exception e) {
 			System.out.println("Deu problema no ataudor");
-		}
-	}
-	
-	/*Classe que extende de Thread para finalizar a comunicacao com o servidor*/
-	/* NAO FUNCIONA POR CAUSA DE UM BUG NO GANCHO DE DESLIGAMENTO DO ECLIPSE
-	 * CLICKANDO NO BOTAO VERMELHO PRA FINALIZAR O PROGRAMA NO ECLIPSE ELE NAO FAZ O GANCHO DE DESLIGAMENTO CORRETO E POR ISSO NAO CONSIGO
-	 * SABER QUANDO UM PROGRAMA FINALIZA */
-	private static class ShutDownTask extends Thread {
-		public SocketChannel client = null;
-		public ShutDownTask(SocketChannel client) {
-			this.client = client;
-		}
-		
-		@Override
-		public void run() {
-			try {
-				client.close();
-				System.out.println("Aquecedor desligado");
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
 		}
 	}
 }

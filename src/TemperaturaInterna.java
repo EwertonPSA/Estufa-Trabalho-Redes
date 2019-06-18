@@ -6,6 +6,7 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.Scanner;
+import java.util.concurrent.TimeUnit;
 
 public class TemperaturaInterna extends Thread{
 	public InetSocketAddress hostAddress = null;
@@ -42,21 +43,40 @@ public class TemperaturaInterna extends Thread{
 		ByteBuffer buffer = ByteBuffer.allocate(256);
 		int byteRead = 0;
 		String msgServer = null;
-		while(!Thread.interrupted() && teclado.hasNext()) {/*Se a conexao nao estiver feixada e quando o server repassar algo entra no while*/
-			input = teclado.nextLine();
-			buffer = ByteBuffer.wrap(input.getBytes());
+		input = "45";
+		
+		boolean alterna = false;
+		
+		while(true) {/*Se a conexao nao estiver feixada e quando o server repassar algo entra no while*/
 			try {
+				TimeUnit.SECONDS.sleep(1);
+			} catch (InterruptedException e1) {
+				System.out.println("Falha no sensor de temperatura, desligando equipamento!");
+				return;
+			}
+			
+			buffer = ByteBuffer.wrap(input.getBytes());
+			try {/*Envia a temperatura pro gerenciador*/
 				client.write(buffer);
 				buffer.clear();
 				msgServer = new String(buffer.array()).trim();
 				System.out.println("Enviado:" + msgServer);
 				buffer.clear();
-			}catch(Exception e) {;}
+				if(alterna == true) {
+					input = "45";
+					alterna = false;
+				}else {
+					input = "46";
+					alterna = true;
+				}
+			}catch(Exception e) {
+				System.out.println("Servidor desligado, desligando sensor!");
+				try {
+					client.close();
+				} catch (IOException e1) {;}
+				return;
+			}
 		}
-		
-		try {
-			client.close();
-		}catch(Exception e) {;}
 	}
 	
 	public static void main(String[] argc) throws UnknownHostException, IOException{
@@ -66,6 +86,5 @@ public class TemperaturaInterna extends Thread{
 		}catch(Exception e) {
 			System.out.println("Problema na conexao com o servidor");
 		}
-
 	}
 }

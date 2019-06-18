@@ -167,7 +167,12 @@ public class Gerenciador{
 		ServerSocketChannel serverSocket = ServerSocketChannel.open();
 		
 		InetSocketAddress hostAddress = new InetSocketAddress("127.0.0.1", 9545);// ip localhost e porta qualquer
-		serverSocket.bind(hostAddress);
+		try {
+			serverSocket.bind(hostAddress);
+		}catch(Exception e) {/*Se ja tiver um gerenciador em execucao ou ip e porta tiver sendo usada*/
+			System.out.println("O localhost com a porta 9545 ja esta em uso!");
+			return;
+		}
 		serverSocket.configureBlocking(false);
 		
 		serverSocket.register(selector, SelectionKey.OP_ACCEPT);// Coloca o selector para administrar a escuta dos canais 

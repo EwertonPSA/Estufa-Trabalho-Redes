@@ -185,6 +185,7 @@ public class Gerenciador{
 		if(equip == aquecedor) {
 			System.out.println("Aquecedor foi desconectado!");
 			statusAtuadorTemp = false;
+			ambiente.setContribuicaoTemperaturaEquip(0);
 		}else if(equip == sensorTemperatura) {
 			System.out.println("Sensor de Temperatura foi desconectado!");
 		}	

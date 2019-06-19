@@ -182,9 +182,10 @@ public class Gerenciador{
 	/* Caso o equipamento seja desconectado os status do equipamento sao resetados*/
 	private static void resetStatusEquip(SocketChannel equip) {
 		if(equip == aquecedor) {
-			
-		}else if(equip == sensorTemperatura) {
+			System.out.println("Reset Equipamento");
 			statusAtuadorTemp = false;
+		}else if(equip == sensorTemperatura) {
+
 		}	
 	}
 	

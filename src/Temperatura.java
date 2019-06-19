@@ -27,12 +27,13 @@ public class Temperatura {
 
 	private static void createFile() throws IOException {
 		arqTemperatura = new File(path);
-		if(!arqTemperatura.exists())
+		if(!arqTemperatura.exists()) {
 			arqTemperatura.createNewFile();
-		FileWriter fw = new FileWriter(arqTemperatura);
-		BufferedWriter buffWrite = new BufferedWriter(fw);
-		buffWrite.append(temperaturaInicial.toString() + String.valueOf('\n'));/*Inicializa o arquivo com uma temperatura Inicial*/
-		buffWrite.close();
+			FileWriter fw = new FileWriter(arqTemperatura);
+			BufferedWriter buffWrite = new BufferedWriter(fw);
+			buffWrite.append(temperaturaInicial.toString() + String.valueOf('\n'));/*Inicializa o arquivo com uma temperatura Inicial*/
+			buffWrite.close();
+		}
 	}
 	
 	public static void main(String[] argc) throws IOException {

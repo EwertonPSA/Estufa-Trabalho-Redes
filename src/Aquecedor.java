@@ -49,10 +49,33 @@ public class Aquecedor extends Thread{
 				bytesRead = client.read(newBuff);
 			}while(bytesRead <= 0);
 			msgGerenciador = newBuff.array();
-			if(msgGerenciador[0] == '2') {
-				System.out.println("Aquecedor foi identificado pelo servidor");
+			
+			if(bytesRead == 1 && msgGerenciador[0] == '2') {
+				System.out.println("Aquecedor foi identificado pelo servidor ");
 				this.statusRegistro = true;
 				this.start();
+			}else if(bytesRead == 2) {
+				/* Se um equipamento que foi cadastrado antes no Gerenciador for conectado
+				 * Novamente (desligo o processo e religo), pode ocorrer de a mensagem no canal vir muito rapido 
+				 * E ser interpretado como uma unica mensagem(registro + sinal de ligar equipamento), assim o comando de ativacao do equipamento eh tratado nessa etapa,
+				 * Pois o gerenciador soh informa uma vez para ligar o equipamento(como eh tcp ele tem certeza que chegou a msg)*/
+				if(msgGerenciador[0] == '2') {/*Identificacao*/
+					System.out.println("Aquecedor foi identificado pelo servidor ");
+					this.statusRegistro = true;
+					this.start();
+				}
+				
+				if(this.statusRegistro == true && msgGerenciador[1] == '5') {//Comando de desativacao do equipamento
+					System.out.println("Aquecedor desativado!");
+					setStatusEquip(false);
+				}else if(this.statusRegistro == true && msgGerenciador[1] == '4') {//Comando de ativacao do equipamento
+					System.out.println("Aquecedor ativado!");
+					setStatusEquip(true);
+				}
+			}
+			
+			if(msgGerenciador[0] == '2') {
+
 			}else {
 				throw new RuntimeException("Problema no registro do equipamento");
 			}
@@ -105,13 +128,11 @@ public class Aquecedor extends Thread{
 	@Override
 	public void run() {
 		while(!this.isInterrupted()) {
-			System.out.println("aqui");
 			try {
 				TimeUnit.SECONDS.sleep(1);
 				if(getStatusEquip())//Se o equipamento estiver ativo
 					updateTemperatura();
 			} catch (InterruptedException e1) {
-				System.out.println("aqui2");
 				return;
 			}
 		}
@@ -122,14 +143,13 @@ public class Aquecedor extends Thread{
 		byte[] msgGerenciador;
 		while(client.isConnected()) {/*Enquanto a conexao nao estiver feixada*/
 			ByteBuffer newBuff = ByteBuffer.allocate(256);
-
 			try {
 				System.out.println("Aguardando mensagem do Gerenciador..");
 				do {
 					bytesRead = client.read(newBuff);
 				}while(bytesRead <= 0);
 				msgGerenciador = newBuff.array();
-				
+				System.out.println(msgGerenciador[0]);
 				if(this.statusRegistro == true && msgGerenciador[0] == '5') {//Comando de desativacao do equipamento
 					System.out.println("Aquecedor desativado!");
 					setStatusEquip(false);//desativa equipamento

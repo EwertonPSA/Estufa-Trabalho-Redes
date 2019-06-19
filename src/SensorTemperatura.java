@@ -47,6 +47,7 @@ public class SensorTemperatura extends Thread{
 		BufferedReader buffRead = new BufferedReader(fr);
 		String temperatura =  buffRead.readLine();//Le a linha e repassa para inteiro
 		int temperaturaInt = Integer.parseInt(temperatura);
+		//System.out.println(temperaturaInt);
 		char[] sequenciaNumero = intToChar(temperaturaInt);
 		return String.valueOf(sequenciaNumero[0]) + String.valueOf(sequenciaNumero[1]) + String.valueOf(sequenciaNumero[2]) + String.valueOf(sequenciaNumero[3]);
 	}

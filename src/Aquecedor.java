@@ -26,6 +26,7 @@ public class Aquecedor extends Thread{
 	private boolean statusRegistro;
 	private String header;
 	private String idEquipamento = "4";
+	private Integer contribuicaoTemperatura = 2;
 
 	public Aquecedor() throws IOException {
 		this.setStatusEquip(false);//Equipamento inicia desligado
@@ -53,7 +54,7 @@ public class Aquecedor extends Thread{
 			if(bytesRead == 1 && msgGerenciador[0] == '2') {
 				System.out.println("Aquecedor foi identificado pelo servidor ");
 				this.statusRegistro = true;
-				this.start();
+				this.start();//Starta Simulador de alteracoes de temperatura
 			}else if(bytesRead == 2) {
 				/* Se um equipamento que foi cadastrado antes no Gerenciador for conectado
 				 * Novamente (desligo o processo e religo), pode ocorrer de a mensagem no canal vir muito rapido 
@@ -62,7 +63,7 @@ public class Aquecedor extends Thread{
 				if(msgGerenciador[0] == '2') {/*Identificacao*/
 					System.out.println("Aquecedor foi identificado pelo servidor ");
 					this.statusRegistro = true;
-					this.start();
+					this.start();//Starta Simulador de alteracoes de temperatura
 				}
 				
 				if(this.statusRegistro == true && msgGerenciador[1] == '5') {//Comando de desativacao do equipamento
@@ -72,12 +73,8 @@ public class Aquecedor extends Thread{
 					System.out.println("Aquecedor ativado!");
 					setStatusEquip(true);
 				}
-			}
-			
-			if(msgGerenciador[0] == '2') {
-
 			}else {
-				throw new RuntimeException("Problema no registro do equipamento");
+				throw new RuntimeException("Problema de registro com o servidor");
 			}
 		}catch(Exception e) {
 			throw new RuntimeException("Problema no registro do equipamento");
@@ -149,7 +146,6 @@ public class Aquecedor extends Thread{
 					bytesRead = client.read(newBuff);
 				}while(bytesRead <= 0);
 				msgGerenciador = newBuff.array();
-				System.out.println(msgGerenciador[0]);
 				if(this.statusRegistro == true && msgGerenciador[0] == '5') {//Comando de desativacao do equipamento
 					System.out.println("Aquecedor desativado!");
 					setStatusEquip(false);//desativa equipamento

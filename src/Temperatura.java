@@ -9,7 +9,7 @@ import java.nio.ByteBuffer;
 public class Temperatura {
 	private static String path = "temperatura.txt";/*arquivo que simula temperatura*/
 	private static File arqTemperatura = null;
-	private static Integer temperaturaInicial = 30;
+	private static Integer temperaturaInicial = 200;
 	
 	public static String getPath() {
 		return path;

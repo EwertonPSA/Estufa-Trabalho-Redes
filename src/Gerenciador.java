@@ -28,8 +28,9 @@ public class Gerenciador{
 	private static SocketChannel resfriador = null;
 	private static SocketChannel irrigador = null;
 	private static SocketChannel injetorC02 = null;
-	private static Integer temperatura = 200;
+	private static Integer temperatura;
 	private static boolean statusAtuadorTemp;
+	private static boolean statusSensorTemp;
 	private static Integer limiarSupTemperatura = 269;
 	private static Integer limiarInfTemperatura = 220;
 	static Map<SocketAddress, Integer> equipaments = null;//Cada endereço remoto esta associado a um equipamento, assim quando um canal pedir uma msg vou identifica-lo pelo endereço remoto
@@ -152,8 +153,7 @@ public class Gerenciador{
 					}catch(Exception e) {/*Se der problema no envio da mensagem o status permanece desativado*/
 						System.out.println("Aquecedor nao se encontra conectado");
 					}
-
-				}else if(statusAtuadorTemp == true && temperatura > (limiarSupTemperatura)) {//Se atuador estiver ligado e temperatura estiver a cima do limiar
+				}else if(statusAtuadorTemp == true && temperatura > (limiarSupTemperatura)) {//Se atuador estiver ligado
 					System.out.println("Servidor informando ao atuador para desligar!");
 					try {//Tenta enviar os dados para o aquecedor
 						ByteBuffer msg = ByteBuffer.wrap("5".getBytes());
@@ -179,6 +179,10 @@ public class Gerenciador{
 		}
 	}
 	
+	private static boolean temperaturaMedia() {
+		return temperatura < limiarSupTemperatura && temperatura > (limiarSupTemperatura + limiarInfTemperatura);
+	}
+
 	/* Caso o equipamento seja desconectado os status do equipamento sao resetados*/
 	private static void resetStatusEquip(SocketChannel equip) {
 		if(equip == aquecedor) {

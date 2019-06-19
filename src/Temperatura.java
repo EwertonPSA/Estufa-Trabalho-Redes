@@ -7,8 +7,9 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public class Temperatura {
-	private static String path = "src/temperatura.txt";/*arquivo que simula temperatura*/
+	private static String path = "temperatura.txt";/*arquivo que simula temperatura*/
 	private static File arqTemperatura = null;
+	private static Integer temperaturaInicial = 30;
 	
 	public static String getPath() {
 		return path;
@@ -26,10 +27,12 @@ public class Temperatura {
 
 	private static void createFile() throws IOException {
 		arqTemperatura = new File(path);
-		/*FileWriter fw = new FileWriter(arqTemperatura);
+		if(!arqTemperatura.exists())
+			arqTemperatura.createNewFile();
+		FileWriter fw = new FileWriter(arqTemperatura);
 		BufferedWriter buffWrite = new BufferedWriter(fw);
-		buffWrite.append('\n');
-		buffWrite.close();*/
+		buffWrite.append(temperaturaInicial.toString() + String.valueOf('\n'));/*Inicializa o arquivo com uma temperatura Inicial*/
+		buffWrite.close();
 	}
 	
 	public static void main(String[] argc) throws IOException {

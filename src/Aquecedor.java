@@ -151,7 +151,7 @@ public class Aquecedor extends Thread{
 			atuador = new Aquecedor();
 			atuador.communicate();
 		}catch(Exception e) {
-			e.printStackTrace();
+			System.out.println("Erro de conexao com o Gerenciador!");
 		}
 	}
 }

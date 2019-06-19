@@ -23,6 +23,7 @@ public class Aquecedor extends Thread{
 	private InetSocketAddress hostAddress = null;
 	private SocketChannel client = null;
 	private boolean statusEquip;
+	private boolean statusRegistro;
 	private String header;
 	private String idEquipamento = "4";
 
@@ -31,11 +32,33 @@ public class Aquecedor extends Thread{
 		this.hostAddress = new InetSocketAddress("127.0.0.1", 9545);
 		this.client = SocketChannel.open(hostAddress);
 		this.client.configureBlocking(false);
+		this.statusRegistro = false;
+		this.statusEquip = false;
 		if(client.isConnectionPending())//Caso a conexao nao tenha sido finalizada
 			client.finishConnect();
 		
 		header = "1";
 		client.write(ByteBuffer.wrap((header + idEquipamento).getBytes()));//Manda a mensagem de Identificacao: header + id
+		
+		ByteBuffer newBuff = ByteBuffer.allocate(256);
+		int bytesRead;
+		byte[] msgGerenciador;
+		try {
+			System.out.println("Aguardando mensagem do Gerenciador..");
+			do {
+				bytesRead = client.read(newBuff);
+			}while(bytesRead <= 0);
+			msgGerenciador = newBuff.array();
+			if(msgGerenciador[0] == '2') {
+				System.out.println("Aquecedor foi identificado pelo servidor");
+				this.statusRegistro = true;
+				this.start();
+			}else {
+				throw new RuntimeException("Problema no registro do equipamento");
+			}
+		}catch(Exception e) {
+			throw new RuntimeException("Problema no registro do equipamento");
+		}
 	}
 	
 	private boolean getStatusEquip() {
@@ -81,13 +104,14 @@ public class Aquecedor extends Thread{
 	
 	@Override
 	public void run() {
-		System.out.println("Atuador ligado!");
 		while(!this.isInterrupted()) {
+			System.out.println("aqui");
 			try {
 				TimeUnit.SECONDS.sleep(1);
 				if(getStatusEquip())//Se o equipamento estiver ativo
 					updateTemperatura();
 			} catch (InterruptedException e1) {
+				System.out.println("aqui2");
 				return;
 			}
 		}
@@ -105,16 +129,16 @@ public class Aquecedor extends Thread{
 					bytesRead = client.read(newBuff);
 				}while(bytesRead <= 0);
 				msgGerenciador = newBuff.array();
-				//msgServer = new String(newBuff.array());
 				
-				if(msgGerenciador[0] == '2') {
-					System.out.println("Aquecedor foi identificado pelo servidor");
-				}else if(msgGerenciador[0] == '5') {//Comando de desativacao do equipamento
+				if(this.statusRegistro == true && msgGerenciador[0] == '5') {//Comando de desativacao do equipamento
+					System.out.println("Aquecedor desativado!");
 					setStatusEquip(false);//desativa equipamento
-				}else if(msgGerenciador[0] == '4') {
+				}else if(this.statusRegistro == true && msgGerenciador[0] == '4') {
+					System.out.println("Aquecedor ativado!");
 					setStatusEquip(true);//ativa equipamento
 				}
 			} catch (IOException e) {
+				this.interrupt();
 				System.out.println("Servidor foi desconectado, desligando equipamento!");
 				return;
 			}
@@ -125,17 +149,8 @@ public class Aquecedor extends Thread{
 		Aquecedor atuador = null;
 		try{
 			atuador = new Aquecedor();
-			atuador.start();
-			Scanner in = new Scanner(System.in);
-			atuador.setStatusEquip(true);
-			in.next();
-			atuador.setStatusEquip(false);
-			in.next();
-			atuador.setStatusEquip(true);
-			in.next();
-			//atuador.communicate();
+			atuador.communicate();
 		}catch(Exception e) {
-			System.out.println("Deu problema no atuador");
 			e.printStackTrace();
 		}
 	}

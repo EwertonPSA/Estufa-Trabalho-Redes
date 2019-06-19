@@ -28,7 +28,10 @@ public class Gerenciador{
 	private static SocketChannel resfriador = null;
 	private static SocketChannel irrigador = null;
 	private static SocketChannel injetorC02 = null;
-	private static ByteBuffer msgSensorTemperatura;
+	private static Integer temperatura = 200;
+	private static boolean statusAtuadorTemp;
+	private static Integer limiarSupTemperatura = 269;
+	private static Integer limiarInfTemperatura = 220;
 	static Map<SocketAddress, Integer> equipaments = null;//Cada endereço remoto esta associado a um equipamento, assim quando um canal pedir uma msg vou identifica-lo pelo endereço remoto
 	
 	private static void register(Selector selector, ServerSocketChannel serverSocket) throws IOException {
@@ -65,6 +68,7 @@ public class Gerenciador{
 					break;
 				case '4':
 					aquecedor = client;
+					statusAtuadorTemp = false;
 					break;
 				case '5':
 					resfriador = client;
@@ -85,9 +89,8 @@ public class Gerenciador{
 
 			switch(id) {
 				case 1:
-					msgSensorTemperatura = buffer;
-					String msgServer = new String(msgSensorTemperatura.array());
-					System.out.println("Resposta do servidor Number:" + byteToInt(2, arr));
+					temperatura = byteToInt(2, arr);
+					//System.out.println("Leitura Sensor Number:" + temperatura);
 					break;
 				case 2:
 					
@@ -121,7 +124,7 @@ public class Gerenciador{
 		int num = 0;
 		for(int i = 3; i >= 0; i--) {
 			num = num<<8;
-			num = num + (int)arr[i+position];
+			num = num + (int)(arr[i+position]&0xff);
 		}
 		return num;
 	}
@@ -140,13 +143,22 @@ public class Gerenciador{
 			case 3:
 				break;
 			case 4:
-				if(msgSensorTemperatura.position() != 0) {//Se houver mensagem a ser repassada pro sensor de temperatura
-					String msgServer = new String(msgSensorTemperatura.array());
-					System.out.println("Enviando: " + msgServer);
+				if(statusAtuadorTemp == false && temperatura <= limiarInfTemperatura) {//Se atuador estiver desligado e temperatura estiver a baixo do limiar
+					System.out.println("Servidor informando ao atuador para ligar!");
 					try {//Tenta enviar os dados para o aquecedor
-						msgSensorTemperatura.flip();
-						aquecedor.write(msgSensorTemperatura);
-						msgSensorTemperatura.clear();
+						ByteBuffer msg = ByteBuffer.wrap("4".getBytes());
+						aquecedor.write(msg);
+						statusAtuadorTemp = true;//Significa que foi enviado a msg para o atuador se conectar
+					}catch(Exception e) {/*Se der problema no envio da mensagem o status permanece desativado*/
+						System.out.println("Aquecedor nao se encontra conectado");
+					}
+
+				}else if(statusAtuadorTemp == true && temperatura > (limiarSupTemperatura)) {//Se atuador estiver ligado e temperatura estiver a cima do limiar
+					System.out.println("Servidor informando ao atuador para desligar!");
+					try {//Tenta enviar os dados para o aquecedor
+						ByteBuffer msg = ByteBuffer.wrap("5".getBytes());
+						aquecedor.write(msg);
+						statusAtuadorTemp = false;
 					}catch(Exception e) {
 						System.out.println("Aquecedor nao se encontra conectado");
 					}
@@ -167,8 +179,16 @@ public class Gerenciador{
 		}
 	}
 	
+	/* Caso o equipamento seja desconectado os status do equipamento sao resetados*/
+	private static void resetStatusEquip(SocketChannel equip) {
+		if(equip == aquecedor) {
+			
+		}else if(equip == sensorTemperatura) {
+			statusAtuadorTemp = false;
+		}	
+	}
+	
 	public static void main(String[] argc) throws IOException{
-		msgSensorTemperatura = ByteBuffer.allocate(256);
 		Selector selector  = Selector.open();
 		ServerSocketChannel serverSocket = ServerSocketChannel.open();
 		
@@ -207,8 +227,9 @@ public class Gerenciador{
 						/* Se o Equipamento desligar e for captado algo no canal
 						 * Vai acontecer problema de leitura, aqui trato a desconexao com o canal do equipamento*/
 						System.out.println("Equipamento foi desconectado!");
-						SocketChannel client = (SocketChannel) key.channel();
-						client.close();
+						SocketChannel equip = (SocketChannel) key.channel();
+						resetStatusEquip(equip);
+						equip.close();
 					}
 				}
 				
@@ -219,7 +240,9 @@ public class Gerenciador{
 						/* Se o Equipamento desligar antes de receber os dados no canal
 						 * Vai acontecer problema de envio, aqui trato a desconexao do canal do equipamento*/
 						System.out.println("Equipamento foi desconectado!");
-						((SocketChannel) key.channel()).close();
+						SocketChannel equip = (SocketChannel) key.channel();
+						resetStatusEquip(equip);
+						equip.close();
 					}
 				}
 				it.remove();

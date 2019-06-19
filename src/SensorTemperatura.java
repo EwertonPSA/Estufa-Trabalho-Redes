@@ -42,27 +42,25 @@ public class SensorTemperatura extends Thread{
 		}
 	}
 	
-	private byte[] readFileTemperatura() throws FileNotFoundException, IOException {
+	private String readFileTemperatura() throws FileNotFoundException, IOException {
 		FileReader fr = new FileReader(Temperatura.getArqTemperatura());
 		BufferedReader buffRead = new BufferedReader(fr);
 		String temperatura =  buffRead.readLine();//Le a linha e repassa para inteiro
-		Integer temperaturaInt = Integer.parseInt(temperatura);
-		System.out.println(temperaturaInt);
-		byte[] sequenciaNumero = intToByte(temperaturaInt);
-		System.out.println(sequenciaNumero);
-		return sequenciaNumero;
+		int temperaturaInt = Integer.parseInt(temperatura);
+		char[] sequenciaNumero = intToChar(temperaturaInt);
+		return String.valueOf(sequenciaNumero[0]) + String.valueOf(sequenciaNumero[1]) + String.valueOf(sequenciaNumero[2]) + String.valueOf(sequenciaNumero[3]);
 	}
 	
-	private byte[] intToByte(Integer temperaturaInt) {
+	private char[] intToChar(int temperaturaInt) {
 		int aux = temperaturaInt;
-		byte[] seqNumero = new byte[4];
+		char[] seqNumero = new char[4];
 		for(int i = 0; i < 4; i++) {
-			seqNumero[i] = (byte)(aux>>(i*8) & 0xff);
+			seqNumero[i] = (char) ((int)aux>>(i*8) & (int)0xFF);
 		}
 		return seqNumero;
 	}
 	
-	private Integer byteToInt(byte[] seqNumero) {
+	private Integer charToInt(char[] seqNumero) {
 		int aux2 = 0;
 		for(int i = 3; i >= 0; i--) {
 			aux2 = aux2<<8;

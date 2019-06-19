@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public class Temperatura {
-	private static String path = "temperatura.txt";/*arquivo que simula temperatura*/
+	private static String path = "src/temperatura.txt";/*arquivo que simula temperatura*/
 	private static File arqTemperatura = null;
 	
 	public static String getPath() {

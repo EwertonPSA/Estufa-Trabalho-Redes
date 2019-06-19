@@ -87,7 +87,7 @@ public class Gerenciador{
 				case 1:
 					msgSensorTemperatura = buffer;
 					String msgServer = new String(msgSensorTemperatura.array());
-					System.out.println("Resposta do servidor:" + msgServer);
+					System.out.println("Resposta do servidor Number:" + byteToInt(2, arr));
 					break;
 				case 2:
 					
@@ -115,6 +115,15 @@ public class Gerenciador{
 					break;
 			}
 		}
+	}
+
+	private static Integer byteToInt(int position, byte[] arr) {
+		int num = 0;
+		for(int i = 3; i >= 0; i--) {
+			num = num<<8;
+			num = num + (int)arr[i+position];
+		}
+		return num;
 	}
 	
 	public static void send(SelectionKey key) throws IOException {

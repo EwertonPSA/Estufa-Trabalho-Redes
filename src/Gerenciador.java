@@ -19,7 +19,6 @@ import java.util.Scanner;
 //As threads dos clientes devem chamar o método e esse método passa pros demais
 import java.util.Set;
 
-/* CORRIGIR: Utilizar o byte to Int do sensor temperatura*/
 public class Gerenciador{
 	private static SocketChannel sensorTemperatura = null;
 	private static SocketChannel sensorUmidade = null;
@@ -28,11 +27,12 @@ public class Gerenciador{
 	private static SocketChannel resfriador = null;
 	private static SocketChannel irrigador = null;
 	private static SocketChannel injetorC02 = null;
-	private static Integer temperatura;
+	private static Integer temperaturaLida;
 	private static boolean statusAtuadorTemp;
 	private static boolean statusSensorTemp;
-	private static Integer limiarSupTemperatura = 269;
-	private static Integer limiarInfTemperatura = 220;
+	private static Integer limiarSupTemperatura;
+	private static Integer limiarInfTemperatura;
+	private static Temperatura ambiente = null;
 	static Map<SocketAddress, Integer> equipaments = null;//Cada endereço remoto esta associado a um equipamento, assim quando um canal pedir uma msg vou identifica-lo pelo endereço remoto
 	
 	private static void register(Selector selector, ServerSocketChannel serverSocket) throws IOException {
@@ -69,7 +69,6 @@ public class Gerenciador{
 					break;
 				case '4':
 					aquecedor = client;
-					statusAtuadorTemp = false;
 					break;
 				case '5':
 					resfriador = client;
@@ -90,32 +89,19 @@ public class Gerenciador{
 
 			switch(id) {
 				case 1:
-					temperatura = byteToInt(2, arr);
-					//System.out.println("Leitura Sensor Number:" + temperatura);
+					temperaturaLida = byteToInt(2, arr);
 					break;
 				case 2:
-					
 					break;
 				case 3:
-					
-					System.out.println();
 					break;
 				case 4:
-					System.out.println("Recebido do sensor de temperatura" + arr);
-					//aquecedor.write(buffer);
-					//buffer.clear();
 					break;
 				case 5:
-					
-					System.out.println();
 					break;
 				case 6:
-					
-					System.out.println();
 					break;
 				case 7:
-					
-					System.out.println();
 					break;
 			}
 		}
@@ -144,16 +130,17 @@ public class Gerenciador{
 			case 3:
 				break;
 			case 4:
-				if(statusAtuadorTemp == false && temperatura <= limiarInfTemperatura) {//Se atuador estiver desligado e temperatura estiver a baixo do limiar
+				if(statusAtuadorTemp == false && temperaturaLida <= limiarInfTemperatura) {//Se atuador estiver desligado e temperaturaLida estiver a baixo do limiar
 					System.out.println("Servidor informando ao atuador para ligar!");
 					try {//Tenta enviar os dados para o aquecedor
 						ByteBuffer msg = ByteBuffer.wrap("4".getBytes());
 						aquecedor.write(msg);
 						statusAtuadorTemp = true;//Significa que foi enviado a msg para o atuador se conectar
+						
 					}catch(Exception e) {/*Se der problema no envio da mensagem o status permanece desativado*/
 						System.out.println("Aquecedor nao se encontra conectado");
 					}
-				}else if(statusAtuadorTemp == true && temperatura > (limiarSupTemperatura)) {//Se atuador estiver ligado
+				}else if(statusAtuadorTemp == true && temperaturaLida > limiarSupTemperatura) {//Se atuador estiver ligado
 					System.out.println("Servidor informando ao atuador para desligar!");
 					try {//Tenta enviar os dados para o aquecedor
 						ByteBuffer msg = ByteBuffer.wrap("5".getBytes());
@@ -180,19 +167,29 @@ public class Gerenciador{
 	}
 	
 	private static boolean temperaturaMedia() {
-		return temperatura < limiarSupTemperatura && temperatura > (limiarSupTemperatura + limiarInfTemperatura);
+		return temperaturaLida < limiarSupTemperatura && temperaturaLida > (limiarSupTemperatura + limiarInfTemperatura);
 	}
 
+	private static void setStatusDefaultEquipamentos() {
+		statusAtuadorTemp = false;
+		statusSensorTemp = false;
+		limiarSupTemperatura = 269;
+		limiarInfTemperatura = 220;
+		ambiente.setContribuicaoTemperaturaEquip(0);//A contribuicao do equipamento eh inicializado com 0 pois os atuadores inicializam desligados
+		
+	}
+	
 	/* Caso o equipamento seja desconectado os status do equipamento sao resetados*/
 	private static void resetStatusEquip(SocketChannel equip) {
 		if(equip == aquecedor) {
-			System.out.println("Reset Equipamento");
+			System.out.println("Aquecedor foi desconectado!");
 			statusAtuadorTemp = false;
 		}else if(equip == sensorTemperatura) {
-
+			System.out.println("Sensor de Temperatura foi desconectado!");
 		}	
 	}
 	
+	/* Administra os canais de comunicacao e inicializa a simulacao da temperatura*/
 	public static void main(String[] argc) throws IOException{
 		Selector selector  = Selector.open();
 		ServerSocketChannel serverSocket = ServerSocketChannel.open();
@@ -208,6 +205,12 @@ public class Gerenciador{
 		
 		serverSocket.register(selector, SelectionKey.OP_ACCEPT);// Coloca o selector para administrar a escuta dos canais 
 		equipaments = new HashMap<SocketAddress, Integer>();
+		
+		
+		ambiente = new Temperatura();
+		ambiente.start();//Inicializa a simulacao da temperatura Ambiente
+		setStatusDefaultEquipamentos();
+		
 		
 		Set<SelectionKey> selectedKeys;
 		while(true) {
@@ -231,7 +234,6 @@ public class Gerenciador{
 					}catch(Exception e) {
 						/* Se o Equipamento desligar e for captado algo no canal
 						 * Vai acontecer problema de leitura, aqui trato a desconexao com o canal do equipamento*/
-						System.out.println("Equipamento foi desconectado!");
 						SocketChannel equip = (SocketChannel) key.channel();
 						resetStatusEquip(equip);
 						equip.close();
@@ -244,7 +246,6 @@ public class Gerenciador{
 					}catch(Exception e) {
 						/* Se o Equipamento desligar antes de receber os dados no canal
 						 * Vai acontecer problema de envio, aqui trato a desconexao do canal do equipamento*/
-						System.out.println("Equipamento foi desconectado!");
 						SocketChannel equip = (SocketChannel) key.channel();
 						resetStatusEquip(equip);
 						equip.close();

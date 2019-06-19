@@ -19,22 +19,20 @@ import java.util.concurrent.TimeUnit;
 
 /* CORRIGIR: Nao precisa mais escrever no arquivo, basta ir na temperatura
  * E adicionar o fator de contribuicao*/
-public class Aquecedor extends Thread{
+public class Aquecedor{
 	private InetSocketAddress hostAddress = null;
 	private SocketChannel client = null;
-	private boolean statusEquip;
 	private boolean statusRegistro;
 	private String header;
 	private String idEquipamento = "4";
-	private Integer contribuicaoTemperatura = 2;
+	private Temperatura ambiente;
 
 	public Aquecedor() throws IOException {
-		this.setStatusEquip(false);//Equipamento inicia desligado
+		this.ambiente = new Temperatura();
 		this.hostAddress = new InetSocketAddress("127.0.0.1", 9545);
 		this.client = SocketChannel.open(hostAddress);
 		this.client.configureBlocking(false);
 		this.statusRegistro = false;
-		this.statusEquip = false;
 		if(client.isConnectionPending())//Caso a conexao nao tenha sido finalizada
 			client.finishConnect();
 		
@@ -54,24 +52,22 @@ public class Aquecedor extends Thread{
 			if(bytesRead == 1 && msgGerenciador[0] == '2') {
 				System.out.println("Aquecedor foi identificado pelo servidor ");
 				this.statusRegistro = true;
-				this.start();//Starta Simulador de alteracoes de temperatura
 			}else if(bytesRead == 2) {
-				/* Se um equipamento que foi cadastrado antes no Gerenciador for conectado
+				/* Se um equipamento que foi cadastrado antes no Gerenciador e for conectado
 				 * Novamente (desligo o processo e religo), pode ocorrer de a mensagem no canal vir muito rapido 
 				 * E ser interpretado como uma unica mensagem(registro + sinal de ligar equipamento), assim o comando de ativacao do equipamento eh tratado nessa etapa,
 				 * Pois o gerenciador soh informa uma vez para ligar o equipamento(como eh tcp ele tem certeza que chegou a msg)*/
 				if(msgGerenciador[0] == '2') {/*Identificacao*/
 					System.out.println("Aquecedor foi identificado pelo servidor ");
 					this.statusRegistro = true;
-					this.start();//Starta Simulador de alteracoes de temperatura
 				}
 				
 				if(this.statusRegistro == true && msgGerenciador[1] == '5') {//Comando de desativacao do equipamento
 					System.out.println("Aquecedor desativado!");
-					setStatusEquip(false);
+					Temperatura.setContribuicaoTemperaturaEquip(0);
 				}else if(this.statusRegistro == true && msgGerenciador[1] == '4') {//Comando de ativacao do equipamento
 					System.out.println("Aquecedor ativado!");
-					setStatusEquip(true);
+					Temperatura.setContribuicaoTemperaturaEquip(2);
 				}
 			}else {
 				throw new RuntimeException("Problema de registro com o servidor");
@@ -80,65 +76,15 @@ public class Aquecedor extends Thread{
 			throw new RuntimeException("Problema no registro do equipamento");
 		}
 	}
-	
-	private boolean getStatusEquip() {
-		return statusEquip;
-	}
-	
-	private void setStatusEquip(boolean statusEquip) {
-		this.statusEquip = statusEquip;
-	}
-
-	private Integer trataTemperatura(Integer temperaturaAtual) {
-		return temperaturaAtual+1;
-	}
-	
-	/*Faz a alteracao da temperatura */
-	public void updateTemperatura() {
-		try {/*Le o arquivo, pega a temperatura atual e aumenta*/
-			FileReader fr = new FileReader(Temperatura.getArqTemperatura());
-			BufferedReader buffRead = new BufferedReader(fr);
-			Integer temperaturaAtual = Integer.parseInt(buffRead.readLine());//Le a linha e repassa para inteiro
-			System.out.println("Lido no arquivo: " + temperaturaAtual);
-			
-			temperaturaAtual = trataTemperatura(temperaturaAtual);
-			
-			if(!this.isInterrupted()) {/*Se a thread nao for interrompida*/
-				System.out.println("Escrevendo no arquivo: " + temperaturaAtual);
-				FileWriter fw = new FileWriter(Temperatura.getArqTemperatura());
-				BufferedWriter buffWrite = new BufferedWriter(fw);
-				buffWrite.append(temperaturaAtual.toString() + '\n');
-				buffWrite.close();
-			}
-		} catch (IOException e) {
-			System.out.println("Problema de escrita no arquivo!");
-			e.printStackTrace();
-			return;
-		}
-	}
-
 
 	public SocketChannel getClient() {
 		return client;
-	}
-	
-	@Override
-	public void run() {
-		while(!this.isInterrupted()) {
-			try {
-				TimeUnit.SECONDS.sleep(1);
-				if(getStatusEquip())//Se o equipamento estiver ativo
-					updateTemperatura();
-			} catch (InterruptedException e1) {
-				return;
-			}
-		}
 	}
 
 	public void communicate(){
 		int bytesRead = 0;
 		byte[] msgGerenciador;
-		while(client.isConnected()) {/*Enquanto a conexao nao estiver feixada*/
+		while(client.isConnected()) {/*Enquanto a conexao nao estiver fechada*/
 			ByteBuffer newBuff = ByteBuffer.allocate(256);
 			try {
 				System.out.println("Aguardando mensagem do Gerenciador..");
@@ -148,13 +94,12 @@ public class Aquecedor extends Thread{
 				msgGerenciador = newBuff.array();
 				if(this.statusRegistro == true && msgGerenciador[0] == '5') {//Comando de desativacao do equipamento
 					System.out.println("Aquecedor desativado!");
-					setStatusEquip(false);//desativa equipamento
+					Temperatura.setContribuicaoTemperaturaEquip(0);
 				}else if(this.statusRegistro == true && msgGerenciador[0] == '4') {
 					System.out.println("Aquecedor ativado!");
-					setStatusEquip(true);//ativa equipamento
+					Temperatura.setContribuicaoTemperaturaEquip(2);
 				}
 			} catch (IOException e) {
-				this.interrupt();
 				System.out.println("Servidor foi desconectado, desligando equipamento!");
 				return;
 			}

@@ -18,6 +18,10 @@ public class SensorTemperatura extends Thread{
 	private String idEquipamento = "1";
 	private String header;
 	
+	/* Inicializa a comunicacao do sensor de temperatura com 
+	 * O gerenciador, depois disso ele aguarda ateh que a resposta do gerenciador 
+	 * informande que ele se encontra Registrado
+	 * Se houver problema no registro eh reportado erro*/
 	public SensorTemperatura() throws IOException{
 		byte msgServerByte[];
 		ByteBuffer msgServer;
@@ -42,16 +46,19 @@ public class SensorTemperatura extends Thread{
 		}
 	}
 	
+	/*Retorna a mensagem como uma sequencia de string ja formatada para o envio no corpo da mensagem pro gerenciador*/
 	private String readFileTemperatura() throws FileNotFoundException, IOException {
 		FileReader fr = new FileReader(Temperatura.getArqTemperatura());
 		BufferedReader buffRead = new BufferedReader(fr);
-		String temperatura =  buffRead.readLine();//Le a linha e repassa para inteiro
-		int temperaturaInt = Integer.parseInt(temperatura);
-		//System.out.println(temperaturaInt);
-		char[] sequenciaNumero = intToChar(temperaturaInt);
+		int temperaturaInt = Integer.parseInt(buffRead.readLine());//Le como string, passa pra inteiro
+		char[] sequenciaNumero = intToChar(temperaturaInt);//Obtem o inteiro como representacao em vetor de char
+		System.out.println("Leitura do Sensor:" + temperaturaInt);
 		return String.valueOf(sequenciaNumero[0]) + String.valueOf(sequenciaNumero[1]) + String.valueOf(sequenciaNumero[2]) + String.valueOf(sequenciaNumero[3]);
 	}
 	
+	/* Pega um valor inteiro e passa pra um vetor de char
+	 * Ele eh usado para obter a representacao correta do inteiro em 4 bytes
+	 * No qual deve ser incluido no corpo da mensagem a ser enviada pro servidor*/
 	private char[] intToChar(int temperaturaInt) {
 		int aux = temperaturaInt;
 		char[] seqNumero = new char[4];
@@ -59,15 +66,6 @@ public class SensorTemperatura extends Thread{
 			seqNumero[i] = (char) ((int)aux>>(i*8) & (int)0xFF);
 		}
 		return seqNumero;
-	}
-	
-	private Integer charToInt(char[] seqNumero) {
-		int aux2 = 0;
-		for(int i = 3; i >= 0; i--) {
-			aux2 = aux2<<8;
-			aux2 = aux2 + seqNumero[i];
-		}
-		return aux2;
 	}
 
 	public void communicate() throws InterruptedException {

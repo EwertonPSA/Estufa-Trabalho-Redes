@@ -1,28 +1,24 @@
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
-import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
-public class SensorTemperatura extends Thread{
+public class SensorCO2 {
 	public InetSocketAddress hostAddress = null;
 	public SocketChannel client = null;
-	private String idEquipamento = "1";
+	private String idEquipamento = "3";
 	private String header;
 	
 	/* Inicializa a comunicacao do sensor de temperatura com 
 	 * O gerenciador, depois disso ele aguarda ateh que a resposta do gerenciador 
 	 * informande que ele se encontra Registrado
 	 * Se houver problema no registro eh reportado erro*/
-	public SensorTemperatura() throws IOException{
+	public SensorCO2() throws IOException{
 		byte msgServerByte[];
 		ByteBuffer msgServer;
 		this.hostAddress = new InetSocketAddress("127.0.0.1", 9545);
@@ -47,12 +43,12 @@ public class SensorTemperatura extends Thread{
 	}
 	
 	/*Retorna a mensagem como uma sequencia de string ja formatada para o envio no corpo da mensagem pro gerenciador*/
-	private String readFileTemperatura() throws FileNotFoundException, IOException {
-		FileReader fr = new FileReader(Temperatura.getArqTemperatura());
+	private String readFileCO2() throws FileNotFoundException, IOException {
+		FileReader fr = new FileReader(CO2.getArqCO2());
 		BufferedReader buffRead = new BufferedReader(fr);
 		int temperaturaInt = Integer.parseInt(buffRead.readLine());//Le como string, passa pra inteiro
 		char[] sequenciaNumero = intToChar(temperaturaInt);//Obtem o inteiro como representacao em vetor de char
-		System.out.println("Leitura:" + temperaturaInt + "°C");
+		System.out.println("Leitura:" + temperaturaInt + "ppmv");
 		return String.valueOf(sequenciaNumero[0]) + String.valueOf(sequenciaNumero[1]) + String.valueOf(sequenciaNumero[2]) + String.valueOf(sequenciaNumero[3]);
 	}
 	
@@ -77,7 +73,7 @@ public class SensorTemperatura extends Thread{
 		while(true) {
 			TimeUnit.SECONDS.sleep(1);
 			try {/*Leitura do arquivo de temperatura*/
-				msgSensor = header + idEquipamento + readFileTemperatura();//Header + id + temperatura
+				msgSensor = header + idEquipamento + readFileCO2();//Header + id + temperatura
 			}catch(Exception e) {
 				System.out.println("Problema ao abrir o arquivo para leitura!");
 				return;
@@ -99,8 +95,11 @@ public class SensorTemperatura extends Thread{
 	
 	public static void main(String[] argc) throws UnknownHostException, IOException{
 		try {
-			SensorTemperatura sensor = new SensorTemperatura();
+			SensorCO2 sensor = new SensorCO2();
 			sensor.communicate();
-		}catch(Exception e) {;}
+		}catch(Exception e) {
+			System.out.println("Erro de conexao com gerenciador!");
+		}
 	}
+
 }

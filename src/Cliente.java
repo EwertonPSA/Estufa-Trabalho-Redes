@@ -1,28 +1,27 @@
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
-public class SensorTemperatura extends Thread{
+public class Cliente {
 	public InetSocketAddress hostAddress = null;
 	public SocketChannel client = null;
-	private String idEquipamento = "1";
+	private String idCliente = "8";
 	private String header;
+	private Scanner teclado;
 	
 	/* Inicializa a comunicacao do sensor de temperatura com 
 	 * O gerenciador, depois disso ele aguarda ateh que a resposta do gerenciador 
 	 * informande que ele se encontra Registrado
 	 * Se houver problema no registro eh reportado erro*/
-	public SensorTemperatura() throws IOException{
+	public Cliente() throws IOException{
+		teclado = new Scanner(System.in);
 		byte msgServerByte[];
 		ByteBuffer msgServer;
 		this.hostAddress = new InetSocketAddress("127.0.0.1", 9545);
@@ -32,7 +31,7 @@ public class SensorTemperatura extends Thread{
 			client.finishConnect();
 		
 		header = "1";
-		client.write(ByteBuffer.wrap((header + idEquipamento).getBytes()));//Manda a mensagem de Identificacao: header + id
+		client.write(ByteBuffer.wrap((header + idCliente).getBytes()));//Manda a mensagem de Identificacao: header + id
 		msgServer = ByteBuffer.allocate(256);
 		int bytesRead = 0;
 		do {
@@ -40,20 +39,10 @@ public class SensorTemperatura extends Thread{
 		}while(bytesRead <= 0);/*Aguarda uma resposta do servidor*/
 		msgServerByte = msgServer.array();
 		if(msgServerByte[0] == '2') {
-			System.out.println("Equipamento registrado");
+			System.out.println("Cliente foi identificado pelo gerenciador!");
 		}else {
-			throw new RuntimeException("Problema no registro do equipamento no servidor!");
+			throw new RuntimeException("Problema no registro no gerenciador!");
 		}
-	}
-	
-	/*Retorna a mensagem como uma sequencia de string ja formatada para o envio no corpo da mensagem pro gerenciador*/
-	private String readFileTemperatura() throws FileNotFoundException, IOException {
-		FileReader fr = new FileReader(Temperatura.getArqTemperatura());
-		BufferedReader buffRead = new BufferedReader(fr);
-		int temperaturaInt = Integer.parseInt(buffRead.readLine());//Le como string, passa pra inteiro
-		char[] sequenciaNumero = intToChar(temperaturaInt);//Obtem o inteiro como representacao em vetor de char
-		System.out.println("Leitura:" + temperaturaInt + "°C");
-		return String.valueOf(sequenciaNumero[0]) + String.valueOf(sequenciaNumero[1]) + String.valueOf(sequenciaNumero[2]) + String.valueOf(sequenciaNumero[3]);
 	}
 	
 	/* Pega um valor inteiro e passa pra um vetor de char
@@ -69,26 +58,30 @@ public class SensorTemperatura extends Thread{
 	}
 
 	public void communicate() throws InterruptedException {
-		ByteBuffer buffer = ByteBuffer.allocate(256);
-		int byteRead = 0;
-		String msgSensor;
+		int bytesRead = 0;
+		String msg;
+		String resposta;
 		header = "3";
-		
+
 		while(true) {
-			TimeUnit.SECONDS.sleep(1);
-			try {/*Leitura do arquivo de temperatura*/
-				msgSensor = header + idEquipamento + readFileTemperatura();//Header + id + temperatura
-			}catch(Exception e) {
-				System.out.println("Problema ao abrir o arquivo para leitura!");
-				return;
-			}
+			ByteBuffer bufferWrite = ByteBuffer.allocate(256);
+			ByteBuffer buffRead = ByteBuffer.allocate(256);
 			
-			try {/*Envia a temperatura pro gerenciador*/
-				buffer = ByteBuffer.wrap(msgSensor.getBytes());
-				client.write(buffer);
-				buffer.clear();
+			msg = header + idCliente + teclado.nextLine();
+			try {
+				bufferWrite = ByteBuffer.wrap(msg.getBytes());
+				client.write(bufferWrite);
+				bufferWrite.clear();
+				
+				do {
+					bytesRead = client.read(buffRead);
+				}while(bytesRead <= 0);
+				resposta = new String(buffRead.array(), 0, buffRead.position());
+				System.out.println("Resposta do Gerenciador: " + resposta );
+				buffRead.clear();
 			}catch(Exception e) {
-				System.out.println("Servidor desligado, desligando sensor!");
+				e.printStackTrace();
+				System.out.println("Servidor desligado, desligando conexao!");
 				try {
 					client.close();
 				} catch (IOException e1) {;}
@@ -99,8 +92,10 @@ public class SensorTemperatura extends Thread{
 	
 	public static void main(String[] argc) throws UnknownHostException, IOException{
 		try {
-			SensorTemperatura sensor = new SensorTemperatura();
+			Cliente sensor = new Cliente();
 			sensor.communicate();
-		}catch(Exception e) {;}
+		}catch(Exception e) {
+			System.out.println("Erro de conexao com gerenciador!");
+		}
 	}
 }

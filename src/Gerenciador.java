@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.Scanner;
 //vou ter que criar um objeto do servidor e repassar pros servidores do cliente
 //Ai usa o syncronized pra nao dar problema de concorrencia
-//As threads dos clientes devem chamar o mÃ©todo e esse mÃ©todo passa pros demais
+//As threads dos clientes devem chamar o método e esse método passa pros demais
 import java.util.Set;
 
 public class Gerenciador{
@@ -33,7 +33,7 @@ public class Gerenciador{
 	private static Integer limiarSupTemperatura;
 	private static Integer limiarInfTemperatura;
 	private static Temperatura ambiente = null;
-	static Map<SocketAddress, Integer> equipaments = null;//Cada endereÃ§o remoto esta associado a um equipamento, assim quando um canal pedir uma msg vou identifica-lo pelo endereÃ§o remoto
+	static Map<SocketAddress, Integer> equipaments = null;//Cada endereço remoto esta associado a um equipamento, assim quando um canal pedir uma msg vou identifica-lo pelo endereço remoto
 	
 	private static void register(Selector selector, ServerSocketChannel serverSocket) throws IOException {
         SocketChannel client = serverSocket.accept();//Abre um socket pro canal
@@ -53,7 +53,7 @@ public class Gerenciador{
 		arr = buffer.array();
 		if(arr[0] == '1'){
 			System.out.println("Id do equipamento conectado: " + (arr[1] - '0'));
-			SocketAddress clientAddress  = client.getRemoteAddress();//Pego o endereÃ§o remoto do equipamento
+			SocketAddress clientAddress  = client.getRemoteAddress();//Pego o endereço remoto do equipamento
 			client.read(buffer);//le e Repassa pro buffer o que foi enviado pelo cliente
 			buffer.flip();//Vai pra posicao zero do buffer
 			equipaments.put(clientAddress, arr[1]-'0');/*Registra a SelectionKey associado a esse equiamento na Map*/
@@ -69,6 +69,7 @@ public class Gerenciador{
 					break;
 				case '4':
 					aquecedor = client;
+					statusAtuadorTemp = false;
 					break;
 				case '5':
 					resfriador = client;
@@ -82,10 +83,10 @@ public class Gerenciador{
 			}
 			
 			buffer = ByteBuffer.wrap("2".getBytes());//Repassa a string "2" em bytes e joga pro buffer
-	        client.write(buffer);//Envia a mensagem de confirmaÃ§ao pro cliente
+	        client.write(buffer);//Envia a mensagem de confirmaçao pro cliente
 		}else if(arr[0] == '3'){//Leitura dos sensores
-			SocketAddress clientAddress  = client.getRemoteAddress();//Pego o endereÃ§o remoto do equipamento
-			Integer id = equipaments.get(clientAddress);/*Pega o id associado ao endereÃ§o remoto do equipamento*/
+			SocketAddress clientAddress  = client.getRemoteAddress();//Pego o endereço remoto do equipamento
+			Integer id = equipaments.get(clientAddress);/*Pega o id associado ao endereço remoto do equipamento*/
 
 			switch(id) {
 				case 1:
@@ -118,8 +119,8 @@ public class Gerenciador{
 	
 	public static void send(SelectionKey key) throws IOException {
 		SocketChannel client = (SocketChannel) key.channel();
-		SocketAddress clientAddress  = client.getRemoteAddress();//Pego o endereÃ§o remoto do equipamento
-		Integer idEquipaments = equipaments.get(clientAddress);//Busca o id do equipamento associado ao enderÃ§o remoto
+		SocketAddress clientAddress  = client.getRemoteAddress();//Pego o endereço remoto do equipamento
+		Integer idEquipaments = equipaments.get(clientAddress);//Busca o id do equipamento associado ao enderço remoto
 		if(idEquipaments == null) return;//Caso o equipamento solicite a leitura mas nao tenha sido identificado
 		switch(idEquipaments) {
 			case 1:	
@@ -173,9 +174,9 @@ public class Gerenciador{
 	private static void setStatusDefaultEquipamentos() {
 		statusAtuadorTemp = false;
 		statusSensorTemp = false;
-		temperaturaLida = 200;
 		limiarSupTemperatura = 269;
 		limiarInfTemperatura = 220;
+		temperaturaLida = 200;
 		ambiente.setContribuicaoTemperaturaEquip(0);//A contribuicao do equipamento eh inicializado com 0 pois os atuadores inicializam desligados
 		
 	}

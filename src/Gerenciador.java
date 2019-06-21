@@ -152,7 +152,7 @@ public class Gerenciador{
 		if(idEquipaments == null) return;//Caso o equipamento solicite a leitura mas nao tenha sido identificado
 		switch(idEquipaments) {
 			case 4:
-				if(statusAquecedor == false && temperaturaLida <= limiarInfTemperatura) {//Se atuador estiver desligado e temperaturaLida estiver a baixo do limiar
+				if(statusAquecedor == false && temperaturaLida < limiarInfTemperatura) {//Se atuador estiver desligado e temperaturaLida estiver a baixo do limiar
 					System.out.println("Servidor informando ao aquecedor para ligar!");
 					try {//Tenta enviar os dados para o aquecedor
 						ByteBuffer msg = ByteBuffer.wrap("4".getBytes());
@@ -162,7 +162,7 @@ public class Gerenciador{
 					}catch(Exception e) {/*Se der problema no envio da mensagem o status permanece desativado*/
 						System.out.println("Aquecedor nao se encontra conectado");
 					}
-				}else if(statusAquecedor == true && temperaturaLida > limiarSupTemperatura) {//Se atuador estiver ligado
+				}else if(statusAquecedor == true && temperaturaLida >= limiarSupTemperatura) {//Se atuador estiver ligado
 					System.out.println("Servidor informando ao aquecedor para desligar!");
 					try {//Tenta enviar os dados para o aquecedor
 						ByteBuffer msg = ByteBuffer.wrap("5".getBytes());
@@ -183,7 +183,7 @@ public class Gerenciador{
 					}catch(Exception e) {/*Se der problema no envio da mensagem o status permanece desativado*/
 						System.out.println("Resfriador nao se encontra conectado");
 					}
-				}else if(statusResfriador == true && temperaturaLida < limiarSupTemperatura) {//Se atuador estiver ligado
+				}else if(statusResfriador == true && temperaturaLida <= limiarInfTemperatura) {//Se atuador estiver ligado
 					System.out.println("Servidor informando ao resfriador para desligar!");
 					try {//Tenta enviar os dados para o resfriador
 						ByteBuffer msg = ByteBuffer.wrap("5".getBytes());
@@ -195,7 +195,7 @@ public class Gerenciador{
 				}
 				break;
 			case 6:
-				if(statusIrrigador == false && umidadeSoloLida <= limiarInfUmidade) {//Liga
+				if(statusIrrigador == false && umidadeSoloLida < limiarInfUmidade) {//Liga
 					System.out.println("Servidor informando ao irrigador para ligar!");
 					try {
 						ByteBuffer msg = ByteBuffer.wrap("4".getBytes());
@@ -204,7 +204,7 @@ public class Gerenciador{
 					}catch(Exception e) {
 						System.out.println("Irrigador nao se encontra conectado");
 					}
-				}else if(statusIrrigador == true && umidadeSoloLida > limiarSupUmidade) {//desliga
+				}else if(statusIrrigador == true && umidadeSoloLida >= limiarSupUmidade) {//desliga
 					System.out.println("Servidor informando ao Irrigador para desligar");
 					try {
 						ByteBuffer msg = ByteBuffer.wrap("5".getBytes());
@@ -217,7 +217,7 @@ public class Gerenciador{
 				
 				break;
 			case 7:
-				if(statusInjetorCO2 == false && co2Lido <= limiarInfCO2) {
+				if(statusInjetorCO2 == false && co2Lido < limiarInfCO2) {
 					System.out.println("Servidor informando ao injetor para ligar!");
 					try {
 						ByteBuffer msg = ByteBuffer.wrap("4".getBytes());
@@ -226,7 +226,7 @@ public class Gerenciador{
 					}catch(Exception e) {
 						System.out.println("Irrigador nao se encontra conectado");
 					}
-				}else if(statusInjetorCO2 == true && co2Lido > limiarSupCO2) {
+				}else if(statusInjetorCO2 == true && co2Lido >= limiarSupCO2) {
 					System.out.println("Servidor informando ao injetor para desligar!");
 					try {
 						ByteBuffer msg = ByteBuffer.wrap("5".getBytes());
@@ -346,9 +346,9 @@ public class Gerenciador{
 		limiarInfUmidade = 30;
 		UmidadeSolo.setContribuicaoUmidadeEquip(0);
 		
-		limiarSupTemperatura = 269;
-		limiarInfTemperatura = 220;
-		temperaturaLida = 240;
+		limiarSupTemperatura = 20;
+		limiarInfTemperatura = 10;
+		temperaturaLida = 0;
 		ambiente.setContribuicaoTemperaturaEquip(0);//A contribuicao do equipamento eh inicializado com 0 pois os atuadores inicializam desligados
 
 		

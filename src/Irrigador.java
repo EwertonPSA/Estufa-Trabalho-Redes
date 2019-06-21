@@ -1,33 +1,18 @@
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
-import java.nio.channels.ClosedChannelException;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
-import java.util.Iterator;
-import java.util.Scanner;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
-/* CORRIGIR: Nao precisa mais escrever no arquivo, basta ir na temperatura
- * E adicionar o fator de contribuicao*/
-public class Aquecedor{
+public class Irrigador {
 	private InetSocketAddress hostAddress = null;
 	private SocketChannel client = null;
 	private boolean statusRegistro;
 	private String header;
-	private String idEquipamento = "4";
+	private String idEquipamento = "6";
 	private Temperatura ambiente;
 
-	public Aquecedor() throws IOException {
+	public Irrigador() throws IOException {
 		this.ambiente = new Temperatura();
 		this.hostAddress = new InetSocketAddress("127.0.0.1", 9545);
 		this.client = SocketChannel.open(hostAddress);
@@ -50,7 +35,7 @@ public class Aquecedor{
 			msgGerenciador = newBuff.array();
 			
 			if(bytesRead == 1 && msgGerenciador[0] == '2') {
-				System.out.println("Aquecedor foi identificado pelo servidor ");
+				System.out.println("Irrigador foi identificado pelo servidor ");
 				this.statusRegistro = true;
 			}else if(bytesRead == 2) {
 				/* Se um equipamento que foi cadastrado antes no Gerenciador e for conectado
@@ -58,16 +43,16 @@ public class Aquecedor{
 				 * E ser interpretado como uma unica mensagem(registro + sinal de ligar equipamento), assim o comando de ativacao do equipamento eh tratado nessa etapa,
 				 * Pois o gerenciador soh informa uma vez para ligar o equipamento(como eh tcp ele tem certeza que chegou a msg)*/
 				if(msgGerenciador[0] == '2') {/*Identificacao*/
-					System.out.println("Aquecedor foi identificado pelo servidor ");
+					System.out.println("Irrigador foi identificado pelo servidor ");
 					this.statusRegistro = true;
 				}
 				
 				if(this.statusRegistro == true && msgGerenciador[1] == '5') {//Comando de desativacao do equipamento
-					System.out.println("Aquecedor desativado!");
-					Temperatura.setContribuicaoTemperaturaEquip(0);
+					System.out.println("Irrigador desativado!");
+					UmidadeSolo.setContribuicaoUmidadeEquip(0);
 				}else if(this.statusRegistro == true && msgGerenciador[1] == '4') {//Comando de ativacao do equipamento
-					System.out.println("Aquecedor ativado!");
-					Temperatura.setContribuicaoTemperaturaEquip(2);
+					System.out.println("Irrigador ativado!");
+					UmidadeSolo.setContribuicaoUmidadeEquip(2);
 				}
 			}else {
 				throw new RuntimeException("Problema de registro com o servidor");
@@ -93,11 +78,11 @@ public class Aquecedor{
 				}while(bytesRead <= 0);
 				msgGerenciador = newBuff.array();
 				if(this.statusRegistro == true && msgGerenciador[0] == '5') {//Comando de desativacao do equipamento
-					System.out.println("Aquecedor desativado!");
-					Temperatura.setContribuicaoTemperaturaEquip(0);
+					System.out.println("Irrigador desativado!");
+					UmidadeSolo.setContribuicaoUmidadeEquip(0);
 				}else if(this.statusRegistro == true && msgGerenciador[0] == '4') {
-					System.out.println("Aquecedor ativado!");
-					Temperatura.setContribuicaoTemperaturaEquip(2);
+					System.out.println("Irrigador ativado!");
+					UmidadeSolo.setContribuicaoUmidadeEquip(2);
 				}
 			} catch (IOException e) {
 				System.out.println("Servidor foi desconectado, desligando equipamento!");
@@ -107,9 +92,9 @@ public class Aquecedor{
 	}
 
 	public static void main(String[] argc) throws UnknownHostException, IOException, InterruptedException{
-		Aquecedor atuador = null;
+		Irrigador atuador = null;
 		try{
-			atuador = new Aquecedor();
+			atuador = new Irrigador();
 			atuador.communicate();
 		}catch(Exception e) {
 			System.out.println("Erro de conexao com o Gerenciador!");

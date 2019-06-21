@@ -10,10 +10,10 @@ public class Injetor {
 	private boolean statusRegistro;
 	private String header;
 	private String idEquipamento = "7";
-	private Temperatura ambiente;
+	private CO2 ambiente;
 
 	public Injetor() throws IOException {
-		this.ambiente = new Temperatura();
+		this.ambiente = new CO2();
 		this.hostAddress = new InetSocketAddress("127.0.0.1", 9545);
 		this.client = SocketChannel.open(hostAddress);
 		this.client.configureBlocking(false);

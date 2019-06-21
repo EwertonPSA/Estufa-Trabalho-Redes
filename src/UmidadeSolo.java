@@ -8,14 +8,12 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 public class UmidadeSolo extends Thread{
-	private static String pathUmidade = "umidade.txt";/*arquivo que simula temperatura*/
+	private static String pathUmidade = "umidade.txt";/*arquivo que simula umidade*/
 	private static String pathContribuicaoUmidade = "contribuicaoUmidade.txt";
 	private static File arqUmidade = null;
 	private static File arqContribuicaoUmidade = null;
 	private static int contribuicaoUmidadeAmbiente = -1;
-	private static int limiarInferiorUmidade = 0;
-	private static int limiarSuperiorUmidade = 100;
-	private static int timeUpdadeSolo = 2;
+	private static int timeUpdadeSolo = 1;
 
 	/* Metodo que retorna o arquivo de umidade para lida ou escrita*/
 	public static File getArqUmidade() throws IOException {
@@ -51,13 +49,13 @@ public class UmidadeSolo extends Thread{
 	 * Caso ele ja se encontre criado eh feito uma checagem no arquivo, verificando se ele esta vazio(se isto ocorrer passa o valor default)
 	 * Se ja se encontrar dados no arquivo entao nao eh feito nada*/
 	private static void createFileUmidade() throws IOException {
-		Integer defaultUmidade = 50;
+		Integer defaultUmidade = 30;
 		arqUmidade = new File(pathUmidade);
 		if(!arqUmidade.exists()) {
 			arqUmidade.createNewFile();
 			FileWriter fw = new FileWriter(getArqUmidade());
 			BufferedWriter buffWrite = new BufferedWriter(fw);
-			buffWrite.append(defaultUmidade.toString() + String.valueOf('\n'));/*Inicializa o arquivo com uma temperatura Inicial*/
+			buffWrite.append(defaultUmidade.toString() + String.valueOf('\n'));/*Inicializa o arquivo com uma umidade Inicial*/
 			buffWrite.close();
 		}else {
 			FileReader fr = new FileReader(getArqUmidade());
@@ -65,13 +63,13 @@ public class UmidadeSolo extends Thread{
 			if(!buffRead.ready()) {/*Se o arquivo se encontar criado mas estiver vazio*/
 				FileWriter fw = new FileWriter(arqUmidade);
 				BufferedWriter buffWrite = new BufferedWriter(fw);
-				buffWrite.append(defaultUmidade.toString() + String.valueOf('\n'));/*Inicializa o arquivo com uma temperatura Inicial*/
+				buffWrite.append(defaultUmidade.toString() + String.valueOf('\n'));/*Inicializa o arquivo com uma umidade Inicial*/
 				buffWrite.close();
 			}
 		}
 	}
 	
-	/* Esse metodo realiza a cricao do arquivo de contribuicao(utilizado para simular as contribuicoes dos atuadores na temperatura) caso ele nao exista
+	/* Esse metodo realiza a cricao do arquivo de contribuicao(utilizado para simular as contribuicoes dos atuadores na umidade) caso ele nao exista
 	 * Caso ele ja se encontre criado eh feito uma checagem no arquivo, verificando se ele esta vazio(se isto ocorrer passa o valor default)
 	 * Se ja se encontrar dados no arquivo entao nao eh feito nada*/
 	private static void createFileContribuicaoUmidade() throws IOException{
@@ -95,30 +93,23 @@ public class UmidadeSolo extends Thread{
 		}
 	}
 	
-	/* Esse metodo obtem a temperatura atual lendo o arquivo temperatura.txt
+	/* Esse metodo obtem a umidade atual lendo o arquivo umidade.txt
 	 * E pega o fator de contribuicao do arquivo contribuicao.txt
 	 * Tendo esses valores eh aplicado o fator de contribuicao do ambiente
-	 * E retornado a temperatura atual*/
+	 * E retornado a umidade atual*/
 	private int updateUmidade() throws FileNotFoundException, IOException{
 		FileReader fr = new FileReader(getArqUmidade());
 		BufferedReader buffRead = new BufferedReader(fr);
 		Integer contribuicaoUmidadeEquip ;
-		/*Lendo a temperatura do arquivo*/
+		/*Lendo a umidade do arquivo*/
 		Integer umidadeAtual = Integer.parseInt(buffRead.readLine());//Le a linha e repassa para inteiro
-		Integer contribuicaoAmbienteSolo;
-		//System.out.println("Lido no arquivo: " + umidadeAtual);
-		if(umidadeAtual <= limiarInferiorUmidade)
-			contribuicaoAmbienteSolo = 0;
-		else if(umidadeAtual >= limiarSuperiorUmidade)
-			contribuicaoAmbienteSolo = 0;
-		else 
-			contribuicaoAmbienteSolo = contribuicaoUmidadeAmbiente;//Se estiver entre 0% e 100% pega a contribuicao ambiente
+		//System.out.println("Lido no arquivo: " + umidadeAtual);		
 		
 		/*Lendo contribuicao dos equipamentos no arquivo*/
 		fr = new FileReader(getArqContribuicaoUmidade());
 		buffRead = new BufferedReader(fr);
 		contribuicaoUmidadeEquip = Integer.parseInt(buffRead.readLine());//Atualiza a contribuicao do equipamento
-		return umidadeAtual + contribuicaoAmbienteSolo + contribuicaoUmidadeEquip;
+		return umidadeAtual + contribuicaoUmidadeAmbiente + contribuicaoUmidadeEquip;
 	}
 	
 	@Override
@@ -137,7 +128,7 @@ public class UmidadeSolo extends Thread{
 			} catch (FileNotFoundException e) {
 				e.printStackTrace();
 			} catch (NumberFormatException e) {
-				System.out.println("Problema na formatacao dos dados da temperatura");
+				System.out.println("Problema na formatacao dos dados da umidade");
 				return;
 			} catch (IOException e) {
 				e.printStackTrace();

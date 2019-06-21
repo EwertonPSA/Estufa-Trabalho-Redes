@@ -82,7 +82,7 @@ public class Resfriador{
 					Temperatura.setContribuicaoTemperaturaEquip(0);
 				}else if(this.statusRegistro == true && msgGerenciador[0] == '4') {
 					System.out.println("Resfriador ativado!");
-					Temperatura.setContribuicaoTemperaturaEquip(-1);
+					Temperatura.setContribuicaoTemperaturaEquip(-2);
 				}
 			} catch (IOException e) {
 				System.out.println("Servidor foi desconectado, desligando equipamento!");

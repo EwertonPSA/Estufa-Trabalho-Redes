@@ -68,13 +68,15 @@ public class Gerenciador{
 		SocketChannel channel = (SocketChannel) key.channel();
 		byte[] arr;
 		int byteReceive = 0;
+		String answer;
+		
 		do {
 			byteReceive = channel.read(buffer);
 		}while(byteReceive <= 0);
-
+		
 		arr = buffer.array();
-		if(arr[0] == '1'){
-			
+		char header = (char) arr[0];
+		if(header == '1'){			
 			SocketAddress clientAddress  = channel.getRemoteAddress();//Pego o endereço remoto do equipamento
 			channel.read(buffer);//le e Repassa pro buffer o que foi enviado pelo cliente
 			buffer.flip();//Vai pra posicao zero do buffer
@@ -114,9 +116,12 @@ public class Gerenciador{
 					break;
 			}
 			
-			buffer = ByteBuffer.wrap("2".getBytes());//Repassa a string "2" em bytes e joga pro buffer
-	        channel.write(buffer);//Envia a mensagem de confirmaçao pro cliente
-		}else if(arr[0] == '3'){//Leitura dos sensores
+			//Repassa mensagem 2 (confirmacao)
+			answer = "2";
+			buffer = ByteBuffer.wrap(answer.getBytes());
+	        channel.write(buffer);
+	        
+		} else if(header == '3'){//Leitura dos sensores
 			SocketAddress clientAddress  = channel.getRemoteAddress();//Pego o endereço remoto do equipamento
 			Integer id = equipaments.get(clientAddress);/*Pega o id associado ao endereço remoto do equipamento*/
 			switch(id) {
@@ -131,6 +136,34 @@ public class Gerenciador{
 					break;
 				case 8:
 					msgCliente = buffer;
+					break;
+			}
+		} else if(header == '6') {	// Pedido de configuracao de limiares pelo cliente
+			// Roddrigo: Precisa mudar o jeito de enviar a confirmacao para o cliente!
+			char tipoParametro = (char)arr[1];
+			int minVal = (int)arr[2];
+			int maxVal = (int)arr[6];
+			if(tipoParametro == '1') {
+				limiarInfTemperatura = minVal;
+				limiarSupTemperatura = maxVal;
+			} else if(tipoParametro == '2') {
+				
+			}
+			switch(tipoParametro) {
+				case '1':
+					limiarInfTemperatura = minVal;
+					limiarSupTemperatura = maxVal;
+					break;
+				case '2':
+					limiarInfUmidade = minVal;
+					limiarSupUmidade = maxVal;
+					break;
+				case '3':
+					limiarInfCO2 = minVal;
+					limiarSupCO2 = maxVal;
+					break;
+				default:
+					System.out.println("Tipo de Parametro invalido!\n");
 					break;
 			}
 		}
@@ -238,7 +271,6 @@ public class Gerenciador{
 				}
 				break;
 			case 8:
-
 				if(msgCliente != null && msgCliente.position() != 0) {//Se houver mensagem a ser analisada
 					/* Observacao importante na implementacao: ByteBuffer foi alocado com 256bytes, 
 					 * Se for retornado um simples array pro construtor(new String(msgCliente.array())) do Objeto String ele repassa todos os bytes
@@ -247,8 +279,7 @@ public class Gerenciador{
 					String msg = new String(msgCliente.array(), 0, msgCliente.position());
 					msgCliente = null;
 					//System.out.println("Pedido do cliente:" + msg.length());
-					Integer solicitacao = analisaPedidoCliente( msg.substring(2, msg.length()));
-					
+					Integer solicitacao = analisaPedidoCliente( msg.substring(2, msg.length()));					
 					ByteBuffer envio;
 					switch(solicitacao) {
 						case 1:

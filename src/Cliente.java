@@ -13,15 +13,14 @@ public class Cliente {
 	public InetSocketAddress hostAddress = null;
 	public SocketChannel client = null;
 	private String idCliente = "8";
-	private String header;
-	private Scanner teclado;
 	
 	/* Inicializa a comunicacao do sensor de temperatura com 
 	 * O gerenciador, depois disso ele aguarda ateh que a resposta do gerenciador 
 	 * informande que ele se encontra Registrado
 	 * Se houver problema no registro eh reportado erro*/
 	public Cliente() throws IOException{
-		teclado = new Scanner(System.in);
+		Scanner teclado = new Scanner(System.in);
+		String header;
 		byte msgServerByte[];
 		ByteBuffer msgServer;
 		this.hostAddress = new InetSocketAddress("127.0.0.1", 9545);
@@ -58,16 +57,52 @@ public class Cliente {
 	}
 
 	public void communicate() throws InterruptedException {
+		Scanner teclado = new Scanner(System.in);
+		String header = "6";
+		char tipoParametro;
+		int minVal = 0, maxVal = 10;
 		int bytesRead = 0;
 		String msg;
 		String resposta;
-		header = "3";
 
 		while(true) {
 			ByteBuffer bufferWrite = ByteBuffer.allocate(256);
 			ByteBuffer buffRead = ByteBuffer.allocate(256);
 			
-			msg = header + idCliente + teclado.nextLine();
+			// Menu do usuario			
+			System.out.println( "   1 - Configurar limiares de temperatura\n" +
+							"   2 - Configurar limiares de CO2\n" +
+							"   3 - Confugurar limiares de umidade\n" +
+							"   4 - Checar temperatura\n" +
+							"   5 - Checar nivel de CO2\n" +
+							"   6 - Checar nivel de umidade\n" +
+							"Insira o valor [1-6] correspondente ao comando: ");
+			
+			// Le comando e parametros
+			int comando = teclado.nextInt();
+			if(comando >= 1 && comando <= 3) {
+				System.out.println("Valor minimo: ");
+				minVal = teclado.nextInt();
+				
+				System.out.println("Valor maximo: ");
+				maxVal = teclado.nextInt();
+				
+				header = "6";
+			} else if(comando >= 4 && comando <= 6) {
+				header = "7";
+			} else {
+				System.out.println("Valor invalido!\n");
+				continue;
+			}
+			
+			// Monta a mensagem para o gerenciador
+			tipoParametro = (char)((comando%3)+1);			
+			if(header == "6") {
+				msg = header + tipoParametro + intToChar(minVal).toString() + intToChar(maxVal).toString();
+			} else {
+				msg = header + tipoParametro;
+			}			
+			
 			try {
 				bufferWrite = ByteBuffer.wrap(msg.getBytes());
 				client.write(bufferWrite);
@@ -85,15 +120,18 @@ public class Cliente {
 				try {
 					client.close();
 				} catch (IOException e1) {;}
+				teclado.close();
 				return;
 			}
+			
+			teclado.close();
 		}
 	}
 	
 	public static void main(String[] argc) throws UnknownHostException, IOException{
 		try {
-			Cliente sensor = new Cliente();
-			sensor.communicate();
+			Cliente cliente = new Cliente();
+			cliente.communicate();
 		}catch(Exception e) {
 			System.out.println("Erro de conexao com gerenciador!");
 		}

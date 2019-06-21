@@ -55,8 +55,8 @@ public class SensorUmidade {
 	/* Pega um valor inteiro e passa pra um vetor de char
 	 * Ele eh usado para obter a representacao correta do inteiro em 4 bytes
 	 * No qual deve ser incluido no corpo da mensagem a ser enviada pro servidor*/
-	private char[] intToChar(int temperaturaInt) {
-		int aux = temperaturaInt;
+	private char[] intToChar(int umidadeInt) {
+		int aux = umidadeInt;
 		char[] seqNumero = new char[4];
 		for(int i = 0; i < 4; i++) {
 			seqNumero[i] = (char) ((int)aux>>(i*8) & (int)0xFF);
@@ -72,14 +72,14 @@ public class SensorUmidade {
 		
 		while(true) {
 			TimeUnit.SECONDS.sleep(1);
-			try {/*Leitura do arquivo de temperatura*/
-				msgSensor = header + idEquipamento + readFileUmidade();//Header + id + temperatura
+			try {/*Leitura do arquivo de umidade*/
+				msgSensor = header + idEquipamento + readFileUmidade();//Header + id + umidade
 			}catch(Exception e) {
 				System.out.println("Problema ao abrir o arquivo para leitura!");
 				return;
 			}
 			
-			try {/*Envia a temperatura pro gerenciador*/
+			try {/*Envia a umidade pro gerenciador*/
 				buffer = ByteBuffer.wrap(msgSensor.getBytes());
 				client.write(buffer);
 				buffer.clear();

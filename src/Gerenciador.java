@@ -337,13 +337,13 @@ public class Gerenciador{
 		statusInjetorCO2 = false;
 		
 		limiarInfCO2 = 300;
-		limiarSupCO2 = 500;
-		co2Lido = 400;
+		limiarSupCO2 = 310;
+		co2Lido = 300;
 		CO2.setContribuicaoCO2(0);
 		
 		umidadeSoloLida = 40;
-		limiarSupUmidade = 70;
-		limiarInfUmidade = 30;
+		limiarSupUmidade = 50;
+		limiarInfUmidade = 40;
 		UmidadeSolo.setContribuicaoUmidadeEquip(0);
 		
 		limiarSupTemperatura = 20;

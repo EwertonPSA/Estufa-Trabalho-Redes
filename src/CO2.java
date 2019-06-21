@@ -8,7 +8,7 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 public class CO2 extends Thread{
-	private static String pathCO2 = "co2.txt";/*arquivo que simula temperatura*/
+	private static String pathCO2 = "co2.txt";/*arquivo que simula co2*/
 	private static String pathContribuicaoCO2 = "contribuicaoCO2.txt";
 	private static File arqCO2 = null;
 	private static File arqContribuicaoCO2 = null;
@@ -16,7 +16,7 @@ public class CO2 extends Thread{
 	private static int limiarInfCO2Ambiente = 300;
 	private static int timeUpdate = 1;
 
-	/* Metodo que retorna o arquivo de temperatura para lida ou escrita*/
+	/* Metodo que retorna o arquivo de co2 para lida ou escrita*/
 	public static File getArqCO2() throws IOException {
 		if(arqCO2 == null)
 			createFileCO2();
@@ -32,9 +32,8 @@ public class CO2 extends Thread{
 	
 	/* Esse metodo eh utilizado apenas pelos atuadores e gerenciador
 	 * O gerenciador utiliza para resetar os status do equipamento(quando desligado ou iniciado) e os atuadores para simulacao
-	 * Atraves dele o fator de contribuicao(que afeta a temperatura ambiente)
-	 * Eh alterado pelo arquivo contribuicao.txt
-	 * Apenas a classe Temperatura tem acesso para lida e escrita no arquivo*/
+	 * Atraves dele o fator de contribuicao eh alterado pelo arquivo contribuicao.txt
+	 * Apenas essa tem acesso para lida e escrita no arquivo*/
 	public static void setContribuicaoCO2(Integer alteracao) {
 		try {
 			FileWriter fw = new FileWriter(getArqContribuicaoCO2());
@@ -47,17 +46,17 @@ public class CO2 extends Thread{
 		}
 	}
 
-	/* Esse metodo realiza a cricao do arquivo de temperatura(utilizado para simular a temperatura) caso ele nao exista
+	/* Esse metodo realiza a cricao do arquivo de co2(utilizado para simular o co2) caso ele nao exista
 	 * Caso ele ja se encontre criado eh feito uma checagem no arquivo, verificando se ele esta vazio(se isto ocorrer passa o valor default)
 	 * Se ja se encontrar dados no arquivo entao nao eh feito nada*/
 	private static void createFileCO2() throws IOException {
-		Integer defaultCO2 = 320;
+		Integer defaultCO2 = 300;
 		arqCO2 = new File(pathCO2);
 		if(!arqCO2.exists()) {
 			arqCO2.createNewFile();
 			FileWriter fw = new FileWriter(getArqCO2());
 			BufferedWriter buffWrite = new BufferedWriter(fw);
-			buffWrite.append(defaultCO2.toString() + String.valueOf('\n'));/*Inicializa o arquivo com uma temperatura Inicial*/
+			buffWrite.append(defaultCO2.toString() + String.valueOf('\n'));/*Inicializa o arquivo com um nivel de co2 Inicial*/
 			buffWrite.close();
 		}else {
 			FileReader fr = new FileReader(getArqCO2());
@@ -65,13 +64,13 @@ public class CO2 extends Thread{
 			if(!buffRead.ready()) {/*Se o arquivo se encontar criado mas estiver vazio*/
 				FileWriter fw = new FileWriter(arqCO2);
 				BufferedWriter buffWrite = new BufferedWriter(fw);
-				buffWrite.append(defaultCO2.toString() + String.valueOf('\n'));/*Inicializa o arquivo com uma temperatura Inicial*/
+				buffWrite.append(defaultCO2.toString() + String.valueOf('\n'));/*Inicializa o arquivo com um nivel de co2 Inicial*/
 				buffWrite.close();
 			}
 		}
 	}
 	
-	/* Esse metodo realiza a cricao do arquivo de contribuicao(utilizado para simular as contribuicoes dos atuadores na temperatura) caso ele nao exista
+	/* Esse metodo realiza a criacao do arquivo de contribuicao(utilizado para simular a contribuicao do atuador no co2) caso ele nao exista
 	 * Caso ele ja se encontre criado eh feito uma checagem no arquivo, verificando se ele esta vazio(se isto ocorrer passa o valor default)
 	 * Se ja se encontrar dados no arquivo entao nao eh feito nada*/
 	private static void createFileContribuicaoCO2() throws IOException{
@@ -95,28 +94,23 @@ public class CO2 extends Thread{
 		}
 	}
 	
-	/* Esse metodo obtem a temperatura atual lendo o arquivo temperatura.txt
+	/* Esse metodo obtem o co2 atual lendo o arquivo co2.txt
 	 * E pega o fator de contribuicao do arquivo contribuicao.txt
 	 * Tendo esses valores eh aplicado o fator de contribuicao do ambiente
-	 * E retornado a temperatura atual*/
+	 * E retornado o nivel de co2 atual*/
 	private int updateCO2() throws FileNotFoundException, IOException{
 		FileReader fr = new FileReader(getArqCO2());
 		BufferedReader buffRead = new BufferedReader(fr);
 		Integer contribuicaoCO2Equip;
-		Integer contribuicaoAmbienteCO2;
-		/*Lendo a temperatura do arquivo*/
-		Integer temperaturaAtual = Integer.parseInt(buffRead.readLine());//Le a linha e repassa para inteiro
-		//System.out.println("Lido no arquivo: " + temperaturaAtual);
-		if(temperaturaAtual <= limiarInfCO2Ambiente)
-			contribuicaoAmbienteCO2 = 0;
-		else 
-			contribuicaoAmbienteCO2 = contribuicaoCO2Ambiente;
-		
+		/*Lendo o co2 do arquivo*/
+		Integer CO2Atual = Integer.parseInt(buffRead.readLine());//Le a linha e repassa para inteiro
+		//System.out.println("Lido no arquivo: " + CO2Atual);
+				
 		/*Lendo contribuicao dos equipamentos no arquivo*/
 		fr = new FileReader(getArqContribuicaoCO2());
 		buffRead = new BufferedReader(fr);
 		contribuicaoCO2Equip = Integer.parseInt(buffRead.readLine());//Atualiza a contribuicao do equipamento
-		return temperaturaAtual + contribuicaoAmbienteCO2 + contribuicaoCO2Equip;
+		return CO2Atual + contribuicaoCO2Ambiente + contribuicaoCO2Equip;
 	}
 	
 	@Override
@@ -135,7 +129,7 @@ public class CO2 extends Thread{
 			} catch (FileNotFoundException e) {
 				e.printStackTrace();
 			} catch (NumberFormatException e) {
-				System.out.println("Problema na formatacao dos dados da temperatura");
+				System.out.println("Problema na formatacao dos dados do nivel de CO2");
 				return;
 			} catch (IOException e) {
 				e.printStackTrace();

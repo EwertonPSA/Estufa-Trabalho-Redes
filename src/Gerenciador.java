@@ -29,20 +29,20 @@ public class Gerenciador{
 	private static SocketChannel injetorCO2 = null;
 	private static SocketChannel cliente = null;
 	
-	private static Integer temperaturaLida;
+	private static Integer temperaturaLida = 0;
 	private static Integer limiarSupTemperatura;
 	private static Integer limiarInfTemperatura;
 	private static boolean statusAquecedor;
 	private static boolean statusResfriador;
 	private static boolean statusSensorTemp;
 	
-	private static Integer umidadeSoloLida;
+	private static Integer umidadeSoloLida = 1;
 	private static Integer limiarSupUmidade;
 	private static Integer limiarInfUmidade;
 	private static boolean statusSensorUmidade;
 	private static boolean statusIrrigador;
 	
-	private static Integer co2Lido;
+	private static Integer co2Lido = 2;
 	private static Integer limiarSupCO2;
 	private static Integer limiarInfCO2;
 	private static boolean statusSensorCO2;
@@ -55,12 +55,24 @@ public class Gerenciador{
 	private static UmidadeSolo solo = null;
 	private static CO2 ar = null;
 	
-	static Map<SocketAddress, Integer> equipaments = null;//Cada endereço remoto esta associado a um equipamento, assim quando um canal pedir uma msg vou identifica-lo pelo endereço remoto
+	//Cada endereço remoto esta associado a um equipamento, assim quando um canal pedir uma msg vou identifica-lo pelo endereço remoto
+	static Map<SocketAddress, Integer> equipaments = null;
+	
+	private static String intToChar(int temperaturaInt) {
+		int aux = temperaturaInt;
+		char[] seqNumero = new char[4];
+		String r = "";
+		for(int i = 0; i < 4; i++) {
+			seqNumero[i] = (char) ((int)aux>>(i*8) & (int)0xFF);
+			r += String.valueOf(seqNumero[i]);
+		}
+		return r;
+	}
 	
 	private static void register(Selector selector, ServerSocketChannel serverSocket) throws IOException {
         SocketChannel channel = serverSocket.accept();//Abre um socket pro canal
         channel.configureBlocking(false);//configura ele como nao bloqueante
-        channel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);//Coloca um selector pra monitor esse socket
+        channel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);//Coloca um selector pra monitorar esse socket
     }
 	
 	public static void receive(SelectionKey key) throws IOException {
@@ -68,19 +80,21 @@ public class Gerenciador{
 		SocketChannel channel = (SocketChannel) key.channel();
 		byte[] arr;
 		int byteReceive = 0;
-		String answer;
 		
 		do {
 			byteReceive = channel.read(buffer);
 		}while(byteReceive <= 0);
 		
 		arr = buffer.array();
-		char header = (char) arr[0];
+		byte header = arr[0];
 		if(header == '1'){			
 			SocketAddress clientAddress  = channel.getRemoteAddress();//Pego o endereço remoto do equipamento
 			channel.read(buffer);//le e Repassa pro buffer o que foi enviado pelo cliente
 			buffer.flip();//Vai pra posicao zero do buffer
-			equipaments.put(clientAddress, arr[1]-'0');/*Registra a SelectionKey associado a esse equiamento na Map*/
+			
+			// Registra a SelectionKey associado a esse equiamento na Map
+			equipaments.put(clientAddress, arr[1]-'0');
+			
 			switch(arr[1]) {/*Registra os canais de comunica, assim quando um SelectionKey de sensorTemperatura vier, por ex, ja repassarei para o aquecedor(se for necessario) */
 				case '1':
 					System.out.println("Sensor de Temperatura Registrado!");
@@ -117,13 +131,14 @@ public class Gerenciador{
 			}
 			
 			//Repassa mensagem 2 (confirmacao)
-			answer = "2";
+			String answer = "2";
 			buffer = ByteBuffer.wrap(answer.getBytes());
 	        channel.write(buffer);
 	        
-		} else if(header == '3'){//Leitura dos sensores
-			SocketAddress clientAddress  = channel.getRemoteAddress();//Pego o endereço remoto do equipamento
-			Integer id = equipaments.get(clientAddress);/*Pega o id associado ao endereço remoto do equipamento*/
+		} else if(header == '3'){	// Leitura dos recebida dos sensores
+			// Identifica o sensor
+			SocketAddress clientAddress  = channel.getRemoteAddress(); // Pego o endereço remoto do equipamento
+			Integer id = equipaments.get(clientAddress);	/*Pega o id associado ao endereço remoto do equipamento*/
 			switch(id) {
 				case 1:
 					temperaturaLida = byteToInt(2, arr);
@@ -134,38 +149,53 @@ public class Gerenciador{
 				case 3:
 					co2Lido = byteToInt(2, arr);
 					break;
-				case 8:
-					msgCliente = buffer;
-					break;
 			}
 		} else if(header == '6') {	// Pedido de configuracao de limiares pelo cliente
-			// Roddrigo: Precisa mudar o jeito de enviar a confirmacao para o cliente!
 			char tipoParametro = (char)arr[1];
-			int minVal = (int)arr[2];
-			int maxVal = (int)arr[6];
+			int minVal = byteToInt(2, arr);
+			int maxVal = byteToInt(6, arr);
+		
+			String printString = "Novos limiares de ";
+			
 			if(tipoParametro == '1') {
+				printString += "temperatura: ";
 				limiarInfTemperatura = minVal;
 				limiarSupTemperatura = maxVal;
 			} else if(tipoParametro == '2') {
-				
+				printString += "umidade: ";
+				limiarInfUmidade = minVal;
+				limiarSupUmidade = maxVal;
+			} else {
+				printString += "CO2: ";
+				limiarInfCO2 = minVal;
+				limiarSupCO2 = maxVal;
 			}
+			
+			printString += minVal + " a " + maxVal;
+			System.out.println(printString);
+			
+			buffer = ByteBuffer.wrap(printString.getBytes());
+			cliente.write(buffer);
+		} else if(header == '7') {
+			String printString = "Enviando leitura de ";
+			char tipoParametro = (char)arr[1];
 			switch(tipoParametro) {
 				case '1':
-					limiarInfTemperatura = minVal;
-					limiarSupTemperatura = maxVal;
+					printString += "temperatura: " + temperaturaLida.toString();
+					msgCliente = ByteBuffer.wrap(("8" + tipoParametro + intToChar(temperaturaLida.intValue())).getBytes());
 					break;
 				case '2':
-					limiarInfUmidade = minVal;
-					limiarSupUmidade = maxVal;
+					printString += "umidade: " + umidadeSoloLida.toString();
+					msgCliente = ByteBuffer.wrap(("8" + tipoParametro + intToChar(umidadeSoloLida.intValue())).getBytes());
 					break;
 				case '3':
-					limiarInfCO2 = minVal;
-					limiarSupCO2 = maxVal;
-					break;
-				default:
-					System.out.println("Tipo de Parametro invalido!\n");
-					break;
+					printString += "CO2: " + co2Lido.toString();
+					msgCliente = ByteBuffer.wrap(("8" + tipoParametro + intToChar(co2Lido.intValue())).getBytes());
+					break;	
 			}
+			System.out.println(printString);
+//			cliente.write(msgCliente);
+//			msgCliente = null;
 		}
 	}
 
@@ -178,11 +208,16 @@ public class Gerenciador{
 		return num;
 	}
 	
+	// Responde a uma solicitacao 
 	public static void send(SelectionKey key) throws IOException {
 		SocketChannel channel = (SocketChannel) key.channel();
-		SocketAddress clientAddress  = channel.getRemoteAddress();//Pego o endereço remoto do equipamento
-		Integer idEquipaments = equipaments.get(clientAddress);//Busca o id do equipamento associado ao enderço remoto
-		if(idEquipaments == null) return;//Caso o equipamento solicite a leitura mas nao tenha sido identificado
+		SocketAddress clientAddress  = channel.getRemoteAddress();	// Pego o endereço remoto do equipamento
+		Integer idEquipaments = equipaments.get(clientAddress);	// Busca o id do equipamento associado ao enderço remoto
+		
+		//Caso o equipamento solicite a leitura mas nao tenha sido identificado
+		if(idEquipaments == null) 
+			return;
+		
 		switch(idEquipaments) {
 			case 4:
 				if(statusAquecedor == false && temperaturaLida <= limiarInfTemperatura) {//Se atuador estiver desligado e temperaturaLida estiver a baixo do limiar
@@ -271,46 +306,10 @@ public class Gerenciador{
 				}
 				break;
 			case 8:
-				if(msgCliente != null && msgCliente.position() != 0) {//Se houver mensagem a ser analisada
-					/* Observacao importante na implementacao: ByteBuffer foi alocado com 256bytes, 
-					 * Se for retornado um simples array pro construtor(new String(msgCliente.array())) do Objeto String ele repassa todos os bytes
-					 * E preenche todo o restante dos 256bytes com vazio, a conversao de String para Integer tendo no final vazios
-					 * Da problema de formatacao, assim foi alterado o construtor para lidar com isto*/
-					String msg = new String(msgCliente.array(), 0, msgCliente.position());
+				// 
+				if(msgCliente != null) {//Se houver mensagem a ser enviada
+					cliente.write(msgCliente);
 					msgCliente = null;
-					//System.out.println("Pedido do cliente:" + msg.length());
-					Integer solicitacao = analisaPedidoCliente( msg.substring(2, msg.length()));					
-					ByteBuffer envio;
-					switch(solicitacao) {
-						case 1:
-							envio = ByteBuffer.wrap("Comando efetuado!".getBytes());
-							cliente.write(envio);
-							break;
-						case 2:
-							envio = ByteBuffer.wrap("Comando efetuado!".getBytes());
-							cliente.write(envio);
-							break;
-						case 3:
-							envio = ByteBuffer.wrap("Comando efetuado!".getBytes());
-							cliente.write(envio);
-							break;
-						case 4:
-							envio = ByteBuffer.wrap("Comando efetuado!".getBytes());
-							cliente.write(envio);
-							break;
-						case 5:
-							envio = ByteBuffer.wrap(temperaturaLida.toString().getBytes());//Envia a temperatura
-							cliente.write(envio);
-							break;
-						case 6:
-							envio = ByteBuffer.wrap(co2Lido.toString().getBytes());
-							cliente.write(envio);
-							break;
-						case -1:
-							envio = ByteBuffer.wrap("Comando nao reconhecido!".getBytes());
-							cliente.write(envio);
-							break;
-					}
 				}
 				break;
 		}
@@ -464,8 +463,7 @@ public class Gerenciador{
 				if(key.isValid() && key.isReadable()) {//Algum canal se comunicou
 					try{
 						receive(key);
-					}catch(Exception e) {
-						
+					}catch(Exception e) {						
 						/* Se o Equipamento desligar e for captado algo no canal
 						 * Vai acontecer problema de leitura, aqui trato a desconexao com o canal do equipamento*/
 						SocketChannel equip = (SocketChannel) key.channel();

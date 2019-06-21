@@ -48,7 +48,7 @@ public class SensorUmidade {
 		BufferedReader buffRead = new BufferedReader(fr);
 		int umidadeInt = Integer.parseInt(buffRead.readLine());//Le como string, passa pra inteiro
 		char[] sequenciaNumero = intToChar(umidadeInt);//Obtem o inteiro como representacao em vetor de char
-		System.out.println("Leitura:" + umidadeInt + "%");
+		System.out.println("Leitura de Umidade do Solo:" + umidadeInt + "%");
 		return String.valueOf(sequenciaNumero[0]) + String.valueOf(sequenciaNumero[1]) + String.valueOf(sequenciaNumero[2]) + String.valueOf(sequenciaNumero[3]);
 	}
 	

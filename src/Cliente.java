@@ -6,6 +6,7 @@ import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+import java.util.InputMismatchException;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
@@ -53,14 +54,14 @@ public class Cliente {
 	 * No qual deve ser incluido no corpo da mensagem a ser enviada pro servidor*/
 	private String intToChar(int temperaturaInt) {
 		int aux = temperaturaInt;
-		char[] seqNumero = new char[4];
-		String r = "";
+		byte[] seqNumero = new byte[4];
 		for(int i = 0; i < 4; i++) {
-			seqNumero[i] = (char) ((int)aux>>(i*8) & (int)0xFF);
-			r += String.valueOf(seqNumero[i]);
+			seqNumero[i] = (byte) (aux>>(i*8) & 0xff);
 		}
+		String r = new String(seqNumero);
 		return r;
 	}
+	
 	
 	private static Integer byteToInt(int position, byte[] arr) {
 		int num = 0;
@@ -95,23 +96,37 @@ public class Cliente {
 				"Insira o valor [1-6] correspondente ao comando: "
 			);
 			
-			// Le comando e parametros
-			int comando = teclado.nextInt();
-			if(comando >= 1 && comando <= 3) {
-				System.out.println("Valor minimo: ");
-				minVal = teclado.nextInt();				
-				System.out.println("Valor maximo: ");
-				maxVal = teclado.nextInt();				
-				header = "6";
-			} else if(comando >= 4 && comando <= 6) {
-				header = "7";
-			} else {
-				System.out.println("Valor invalido!");
+			int comando;
+			try {
+				// Le comando e parametros
+				comando = teclado.nextInt();
+				if(comando >= 1 && comando <= 3) {
+					System.out.println("Valor minimo: ");
+					minVal = teclado.nextInt();				
+					System.out.println("Valor maximo: ");
+					maxVal = teclado.nextInt();				
+					header = "6";
+					if(maxVal < minVal) {
+						System.out.println("Valores invalidos!");
+						continue;
+					}
+					
+				} else if(comando >= 4 && comando <= 6) {
+					header = "7";
+				} else {
+					System.out.println("Valor invalido!");
+					continue;
+				}
+			}catch(InputMismatchException e) {
+				System.out.println("Valores de configuracoes invalidos!");
+				teclado.next();
 				continue;
 			}
 			
 			// Monta a mensagem para o gerenciador
-			tipoParametro = Integer.toString((((comando-1)%3)+1));			
+			tipoParametro = Integer.toString((((comando-1)%3)+1));
+			
+			
 			if(header == "6") {
 				msg = header + tipoParametro +  intToChar(minVal) + intToChar(maxVal);
 			} else {

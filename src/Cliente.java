@@ -106,11 +106,10 @@ public class Cliente {
 					System.out.println("Valor maximo: ");
 					maxVal = teclado.nextInt();				
 					header = "6";
-					if(maxVal < minVal) {
+					if(maxVal <= minVal) {
 						System.out.println("Valores invalidos!");
 						continue;
-					}
-					
+					}					
 				} else if(comando >= 4 && comando <= 6) {
 					header = "7";
 				} else {
@@ -118,15 +117,21 @@ public class Cliente {
 					continue;
 				}
 			}catch(InputMismatchException e) {
-				System.out.println("Valores de configuracoes invalidos!");
+				System.out.println("Valores de configuracao invalidos!");
 				teclado.next();
 				continue;
 			}
 			
+			// Trata valores minimo e maximo para limiares de CO2 e umidade
+			if(comando == 2 || comando == 3){
+				if(minVal < 0 || maxVal > 100) {
+					System.out.println("Valores invalidos para os limiares!");					
+					continue;
+				}
+			}
+			
 			// Monta a mensagem para o gerenciador
 			tipoParametro = Integer.toString((((comando-1)%3)+1));
-			
-			
 			if(header == "6") {
 				msg = header + tipoParametro +  intToChar(minVal) + intToChar(maxVal);
 			} else {

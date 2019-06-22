@@ -103,7 +103,13 @@ public class UmidadeSolo extends Thread{
 		Integer contribuicaoUmidadeEquip ;
 		/*Lendo a umidade do arquivo*/
 		Integer umidadeAtual = Integer.parseInt(buffRead.readLine());//Le a linha e repassa para inteiro
-		//System.out.println("Lido no arquivo: " + umidadeAtual);		
+		//System.out.println("Lido no arquivo: " + umidadeAtual);
+		
+		if(umidadeAtual <= 0) {
+			contribuicaoUmidadeAmbiente = 0;
+		} else {
+			contribuicaoUmidadeAmbiente = -1;
+		}
 		
 		/*Lendo contribuicao dos equipamentos no arquivo*/
 		fr = new FileReader(getArqContribuicaoUmidade());

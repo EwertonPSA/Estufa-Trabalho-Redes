@@ -48,7 +48,7 @@ public class SensorCO2 {
 		BufferedReader buffRead = new BufferedReader(fr);
 		int CO2Int = Integer.parseInt(buffRead.readLine());//Le como string, passa pra inteiro
 		String sequenciaNumero = intToChar(CO2Int);//Obtem o inteiro como representacao em vetor de char
-		System.out.println("Leitura do CO2:" + CO2Int + "ppmv");
+		System.out.println("Leitura de CO2:" + CO2Int + "ppm");
 		return sequenciaNumero;
 	}
 	

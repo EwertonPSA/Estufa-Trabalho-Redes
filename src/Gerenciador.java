@@ -85,8 +85,7 @@ public class Gerenciador{
 			byteReceive = channel.read(buffer);
 		}while(byteReceive <= 0);
 		
-		arr = buffer.array();
-		
+		arr = buffer.array();		
 		byte header = arr[0];
 		if(header == '1'){			
 			SocketAddress clientAddress  = channel.getRemoteAddress();//Pego o endereço remoto do equipamento
@@ -152,7 +151,6 @@ public class Gerenciador{
 					break;
 			}
 		} else if(header == '6') {	// Pedido de configuracao de limiares pelo cliente
-			
 			char tipoParametro = (char)arr[1];
 			int minVal = byteToInt(2, arr);
 			int maxVal = byteToInt(6, arr);
@@ -177,7 +175,6 @@ public class Gerenciador{
 			System.out.println(printString);
 			
 			msgCliente = ByteBuffer.wrap(printString.getBytes());
-			//cliente.write(buffer);
 		} else if(header == '7') {
 			String printString = "Enviando leitura de ";
 			char tipoParametro = (char)arr[1];
@@ -204,9 +201,7 @@ public class Gerenciador{
 		for(int i = 3; i >= 0; i--) {
 			num = num<<8;
 			num = num + (arr[i+position]&0xff);
-			//System.out.println((int)(arr[i+position]&0xff));
 		}
-		//System.out.println(num);
 		
 		return num;
 	}
@@ -306,9 +301,8 @@ public class Gerenciador{
 		limiarSupTemperatura = 20;
 		limiarInfTemperatura = 10;
 		temperaturaLida = 0;
-		ambiente.setContribuicaoTemperaturaEquip(0);//A contribuicao do equipamento eh inicializado com 0 pois os atuadores inicializam desligados
-
-		
+		ambiente.setContribuicaoAquecedor(0);
+		ambiente.setContribuicaoResfriador(0); //A contribuicao do equipamento eh inicializado com 0 pois os atuadores inicializam desligados		
 	}
 	
 	/* Caso o equipamento seja desconectado os status do equipamento sao resetados*/
@@ -316,15 +310,15 @@ public class Gerenciador{
 		if(equip == aquecedor) {
 			System.out.println("Aquecedor foi desconectado!");
 			statusAquecedor = false;
-			if(statusResfriador == false)//Se o resfriado nao estiver ligado
-				ambiente.setContribuicaoTemperaturaEquip(0);
+			if(statusResfriador == false)//Se o resfriador nao estiver ligado
+				ambiente.setContribuicaoResfriador(0);
 		}else if(equip == sensorTemperatura) {
 			System.out.println("Sensor de Temperatura foi desconectado!");
 		}else if(equip == resfriador) {
 			System.out.println("Resfriador foi desconectado!");
 			statusResfriador = false;
 			if(statusAquecedor == false)//Se o aquecedor nao estiver ligado
-				ambiente.setContribuicaoTemperaturaEquip(0);
+				ambiente.setContribuicaoAquecedor(0);
 		}else if(equip == sensorUmidade) {
 			statusSensorUmidade = false;
 			System.out.println("Sensor de Umidade foi desconectado!");
@@ -370,6 +364,7 @@ public class Gerenciador{
 		ar.start();
 		
 		setStatusDefaultEquipamentos();
+		System.out.println("Gerenciador iniciado!");
 		
 		Set<SelectionKey> selectedKeys;
 		while(true) {

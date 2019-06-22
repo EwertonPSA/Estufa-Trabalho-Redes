@@ -10,10 +10,12 @@ import java.util.concurrent.TimeUnit;
 
 public class Temperatura extends Thread{
 	private static String pathTemperatura = "temperatura.txt";/*arquivo que simula temperatura*/
-	private static String pathContribuicao = "contribuicaoTemperatura.txt";
+	private static String pathContribuicaoAquecedor = "contribuicaoAquecedor.txt";
+	private static String pathContribuicaoResfriador = "contribuicaoResfriador.txt";
 	private static String pathTemperaturaAmbiente = "temperaturaAmbiente.txt";
 	private static File arqTemperatura = null;
-	private static File arqContribuicao = null;
+	private static File arqContribuicaoAquecedor = null;
+	private static File arqContribuicaoResfriador = null;
 	private static File arqTemperaturaAmbiente = null;
 	private static int contribuicaoTemperaturaAmbiente = 0;
 	private static int TemperaturaAmbiente = 0;
@@ -26,10 +28,16 @@ public class Temperatura extends Thread{
 	}
 	
 	/* Metodo que retorna o arquivo de contribuicao para lida ou escrita*/
-	public static File getArqContribuicaoTemp() throws IOException {
-		if(arqContribuicao == null)
-			createFileContribuicao();
-		return arqContribuicao;
+	public static File getArqContribuicaoAquecedor() throws IOException {
+		if(arqContribuicaoAquecedor == null)
+			createFileContribuicaoAquecedor();
+		return arqContribuicaoAquecedor;
+	}
+	
+	public static File getArqContribuicaoResfriador() throws IOException {
+		if(arqContribuicaoResfriador == null)
+			createFileContribuicaoResfriador();
+		return arqContribuicaoResfriador;
 	}
 	
 	public static File getArqTemperaturaAmbiente() throws IOException {
@@ -43,9 +51,21 @@ public class Temperatura extends Thread{
 	 * Atraves dele o fator de contribuicao(que afeta a temperatura ambiente)
 	 * Eh alterado pelo arquivo contribuicao.txt
 	 * Apenas a classe Temperatura tem acesso para leitura e escrita no arquivo*/
-	public static void setContribuicaoTemperaturaEquip(Integer alteracao) {
+	public static void setContribuicaoAquecedor(Integer alteracao) {
 		try {
-			FileWriter fw = new FileWriter(getArqContribuicaoTemp());
+			FileWriter fw = new FileWriter(getArqContribuicaoAquecedor());
+			BufferedWriter buffWrite = new BufferedWriter(fw);
+			buffWrite.append(alteracao.toString() + String.valueOf('\n'));
+			buffWrite.close();
+			//System.out.println("Alterado contribuicao " + alteracao);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public static void setContribuicaoResfriador(Integer alteracao) {
+		try {
+			FileWriter fw = new FileWriter(getArqContribuicaoResfriador());
 			BufferedWriter buffWrite = new BufferedWriter(fw);
 			buffWrite.append(alteracao.toString() + String.valueOf('\n'));
 			buffWrite.close();
@@ -82,20 +102,41 @@ public class Temperatura extends Thread{
 	/* Esse metodo realiza a cricao do arquivo de contribuicao(utilizado para simular as contribuicoes dos atuadores na temperatura) caso ele nao exista
 	 * Caso ele ja se encontre criado eh feito uma checagem no arquivo, verificando se ele esta vazio(se isto ocorrer passa o valor default)
 	 * Se ja se encontrar dados no arquivo entao nao eh feito nada*/
-	private static void createFileContribuicao() throws IOException{
+	private static void createFileContribuicaoAquecedor() throws IOException{
 		Integer contribuicaoDefault = 0;
-		arqContribuicao = new File(pathContribuicao);
-		if(!arqContribuicao.exists()) {
-			arqContribuicao.createNewFile();
-			FileWriter fw = new FileWriter(getArqContribuicaoTemp());
+		arqContribuicaoAquecedor = new File(pathContribuicaoAquecedor);
+		if(!arqContribuicaoAquecedor.exists()) {
+			arqContribuicaoAquecedor.createNewFile();
+			FileWriter fw = new FileWriter(getArqContribuicaoAquecedor());
 			BufferedWriter buffWrite = new BufferedWriter(fw);
 			buffWrite.append(contribuicaoDefault.toString() + String.valueOf('\n'));
 			buffWrite.close();
 		}else {//Se arquivo existir
-			FileReader fr = new FileReader(getArqContribuicaoTemp());
+			FileReader fr = new FileReader(getArqContribuicaoAquecedor());
 			BufferedReader buffRead = new BufferedReader(fr);
 			if(!buffRead.ready()) {/*Se o arquivo se encontar criado mas estiver vazio(modificado)*/
-				FileWriter fw = new FileWriter(arqContribuicao);
+				FileWriter fw = new FileWriter(arqContribuicaoAquecedor);
+				BufferedWriter buffWrite = new BufferedWriter(fw);
+				buffWrite.append(contribuicaoDefault.toString() + String.valueOf('\n'));/*Inicializa o arquivo com uma contribuicao Inicial*/
+				buffWrite.close();
+			}
+		}
+	}
+	
+	private static void createFileContribuicaoResfriador() throws IOException{
+		Integer contribuicaoDefault = 0;
+		arqContribuicaoResfriador = new File(pathContribuicaoResfriador);
+		if(!arqContribuicaoResfriador.exists()) {
+			arqContribuicaoResfriador.createNewFile();
+			FileWriter fw = new FileWriter(getArqContribuicaoResfriador());
+			BufferedWriter buffWrite = new BufferedWriter(fw);
+			buffWrite.append(contribuicaoDefault.toString() + String.valueOf('\n'));
+			buffWrite.close();
+		}else {//Se arquivo existir
+			FileReader fr = new FileReader(getArqContribuicaoResfriador());
+			BufferedReader buffRead = new BufferedReader(fr);
+			if(!buffRead.ready()) {/*Se o arquivo se encontar criado mas estiver vazio(modificado)*/
+				FileWriter fw = new FileWriter(arqContribuicaoResfriador);
 				BufferedWriter buffWrite = new BufferedWriter(fw);
 				buffWrite.append(contribuicaoDefault.toString() + String.valueOf('\n'));/*Inicializa o arquivo com uma contribuicao Inicial*/
 				buffWrite.close();
@@ -150,10 +191,17 @@ public class Temperatura extends Thread{
 		
 		
 		/*Lendo contribuicao dos equipamentos no arquivo*/
-		fr = new FileReader(getArqContribuicaoTemp());
+		fr = new FileReader(getArqContribuicaoAquecedor());
 		buffRead = new BufferedReader(fr);
-		contribuicaoTemperaturaEquip = Integer.parseInt(buffRead.readLine());//Atualiza a contribuicao do equipamento
-		return temperaturaAtual + contribuicaoTemperaturaAmbiente + contribuicaoTemperaturaEquip;
+		Integer contribuicaoAquecedor = Integer.parseInt(buffRead.readLine());//Atualiza a contribuicao do equipamento
+		
+		fr = new FileReader(getArqContribuicaoResfriador());
+		buffRead = new BufferedReader(fr);
+		Integer contribuicaoResfriador = Integer.parseInt(buffRead.readLine());//Atualiza a contribuicao do equipamento
+		
+		return temperaturaAtual + contribuicaoTemperaturaAmbiente + contribuicaoAquecedor + contribuicaoResfriador;
+		
+		
 	}
 	
 	@Override

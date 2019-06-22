@@ -49,10 +49,10 @@ public class Resfriador{
 				
 				if(this.statusRegistro == true && msgGerenciador[1] == '5') {//Comando de desativacao do equipamento
 					System.out.println("Resfriador desativado!");
-					Temperatura.setContribuicaoTemperaturaEquip(0);
+					Temperatura.setContribuicaoResfriador(0);
 				}else if(this.statusRegistro == true && msgGerenciador[1] == '4') {//Comando de ativacao do equipamento
 					System.out.println("Resfriador ativado!");
-					Temperatura.setContribuicaoTemperaturaEquip(-1);
+					Temperatura.setContribuicaoResfriador(-2);
 				}
 			}else {
 				throw new RuntimeException("Problema de registro com o servidor");
@@ -79,10 +79,10 @@ public class Resfriador{
 				msgGerenciador = newBuff.array();
 				if(this.statusRegistro == true && msgGerenciador[0] == '5') {//Comando de desativacao do equipamento
 					System.out.println("Resfriador desativado!");
-					Temperatura.setContribuicaoTemperaturaEquip(0);
+					Temperatura.setContribuicaoResfriador(0);
 				}else if(this.statusRegistro == true && msgGerenciador[0] == '4') {
 					System.out.println("Resfriador ativado!");
-					Temperatura.setContribuicaoTemperaturaEquip(-2);
+					Temperatura.setContribuicaoResfriador(-2);
 				}
 			} catch (IOException e) {
 				System.out.println("Servidor foi desconectado, desligando equipamento!");

@@ -105,6 +105,12 @@ public class CO2 extends Thread{
 		/*Lendo o co2 do arquivo*/
 		Integer CO2Atual = Integer.parseInt(buffRead.readLine());//Le a linha e repassa para inteiro
 		//System.out.println("Lido no arquivo: " + CO2Atual);
+		
+		if(CO2Atual <= 0) {
+			contribuicaoCO2Ambiente = 0;
+		} else {
+			contribuicaoCO2Ambiente = -1;
+		}
 				
 		/*Lendo contribuicao dos equipamentos no arquivo*/
 		fr = new FileReader(getArqContribuicaoCO2());

@@ -64,10 +64,10 @@ public class Aquecedor{
 				
 				if(this.statusRegistro == true && msgGerenciador[1] == '5') {//Comando de desativacao do equipamento
 					System.out.println("Aquecedor desativado!");
-					Temperatura.setContribuicaoTemperaturaEquip(0);
+					Temperatura.setContribuicaoAquecedor(0);
 				}else if(this.statusRegistro == true && msgGerenciador[1] == '4') {//Comando de ativacao do equipamento
 					System.out.println("Aquecedor ativado!");
-					Temperatura.setContribuicaoTemperaturaEquip(2);
+					Temperatura.setContribuicaoAquecedor(2);
 				}
 			}else {
 				throw new RuntimeException("Problema de registro com o servidor");
@@ -94,10 +94,10 @@ public class Aquecedor{
 				msgGerenciador = newBuff.array();
 				if(this.statusRegistro == true && msgGerenciador[0] == '5') {//Comando de desativacao do equipamento
 					System.out.println("Aquecedor desativado!");
-					Temperatura.setContribuicaoTemperaturaEquip(0);
+					Temperatura.setContribuicaoAquecedor(0);
 				}else if(this.statusRegistro == true && msgGerenciador[0] == '4') {
 					System.out.println("Aquecedor ativado!");
-					Temperatura.setContribuicaoTemperaturaEquip(2);
+					Temperatura.setContribuicaoAquecedor(2);
 				}
 			} catch (IOException e) {
 				System.out.println("Servidor foi desconectado, desligando equipamento!");

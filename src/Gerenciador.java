@@ -86,6 +86,7 @@ public class Gerenciador{
 		}while(byteReceive <= 0);
 		
 		arr = buffer.array();
+		
 		byte header = arr[0];
 		if(header == '1'){			
 			SocketAddress clientAddress  = channel.getRemoteAddress();//Pego o endereço remoto do equipamento
@@ -151,6 +152,7 @@ public class Gerenciador{
 					break;
 			}
 		} else if(header == '6') {	// Pedido de configuracao de limiares pelo cliente
+			
 			char tipoParametro = (char)arr[1];
 			int minVal = byteToInt(2, arr);
 			int maxVal = byteToInt(6, arr);
@@ -201,8 +203,11 @@ public class Gerenciador{
 		int num = 0;
 		for(int i = 3; i >= 0; i--) {
 			num = num<<8;
-			num = num + (int)(arr[i+position]&0xff);
+			num = num + (arr[i+position]&0xff);
+			//System.out.println((int)(arr[i+position]&0xff));
 		}
+		//System.out.println(num);
+		
 		return num;
 	}
 	
@@ -236,7 +241,7 @@ public class Gerenciador{
 					ByteBuffer msg = ByteBuffer.wrap("4".getBytes());
 					resfriador.write(msg);
 					statusResfriador = true;//Significa que foi enviado a msg para o atuador se ligar
-				}else if(statusResfriador == true && temperaturaLida <= limiarSupTemperatura) {//Se atuador estiver ligado
+				}else if(statusResfriador == true && temperaturaLida <= limiarInfTemperatura) {//Se atuador estiver ligado
 					System.out.println("Servidor informando ao resfriador para desligar!");
 					ByteBuffer msg = ByteBuffer.wrap("5".getBytes());
 					resfriador.write(msg);

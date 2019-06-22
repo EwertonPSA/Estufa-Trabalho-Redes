@@ -47,21 +47,22 @@ public class SensorCO2 {
 		FileReader fr = new FileReader(CO2.getArqCO2());
 		BufferedReader buffRead = new BufferedReader(fr);
 		int CO2Int = Integer.parseInt(buffRead.readLine());//Le como string, passa pra inteiro
-		char[] sequenciaNumero = intToChar(CO2Int);//Obtem o inteiro como representacao em vetor de char
-		System.out.println("Leitura:" + CO2Int + "ppmv");
-		return String.valueOf(sequenciaNumero[0]) + String.valueOf(sequenciaNumero[1]) + String.valueOf(sequenciaNumero[2]) + String.valueOf(sequenciaNumero[3]);
+		String sequenciaNumero = intToChar(CO2Int);//Obtem o inteiro como representacao em vetor de char
+		System.out.println("Leitura do CO2:" + CO2Int + "ppmv");
+		return sequenciaNumero;
 	}
 	
 	/* Pega um valor inteiro e passa pra um vetor de char
 	 * Ele eh usado para obter a representacao correta do inteiro em 4 bytes
 	 * No qual deve ser incluido no corpo da mensagem a ser enviada pro servidor*/
-	private char[] intToChar(int CO2Int) {
-		int aux = CO2Int;
-		char[] seqNumero = new char[4];
+	private String intToChar(int temperaturaInt) {
+		int aux = temperaturaInt;
+		byte[] seqNumero = new byte[4];
 		for(int i = 0; i < 4; i++) {
-			seqNumero[i] = (char) ((int)aux>>(i*8) & (int)0xFF);
+			seqNumero[i] = (byte) (aux>>(i*8) & 0xff);
 		}
-		return seqNumero;
+		String r = new String(seqNumero);
+		return r;
 	}
 
 	public void communicate() throws InterruptedException {

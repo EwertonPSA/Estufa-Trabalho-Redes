@@ -9,6 +9,7 @@ Nossa aplicação foi implementada na linguagem Java 8 com a IDE Eclipse no sist
 Os processos de cada dispositivo podem ser executados buscando o diretório /Simulacao no diretório principal da aplicação pelo Prompt de Comando do Windows e inserindo              o comando: 
  
 java -jar <nome do executável>.jar 
+
 Obs: O processo do Gerenciador deve ser o primeiro a ser executado. 
 
 ### Observações 

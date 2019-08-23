@@ -1,5 +1,6 @@
 # Estufa-Trabalho-Redes
-Na pdf Parte 1 apresenta o protocolo de comunicação usado na rede de comunicação entre os equipamentos.
+No pdf [Redes] Trabalho-Parte 1.pdf é apresentado o protocolo de comunicação usado na rede de comunicação entre os equipamentos.
+No pdf 
 
 Nossa aplicação foi implementada na linguagem Java 8 com a IDE Eclipse no sistema operacional Windows 10. Seu funcionamento ocorre de acordo com o protocolo estabelecido na parte 1 do trabalho.
 

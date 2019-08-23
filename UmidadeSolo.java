@@ -7,33 +7,35 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
+//classe utilizada para simular a umidade do solo
+//umidade foi simulada a partir de arquivos de leitura e escrita
+
 public class UmidadeSolo extends Thread{
 	private static String pathUmidade = "umidade.txt";/*arquivo que simula umidade*/
-	private static String pathContribuicaoUmidade = "contribuicaoUmidade.txt";
+	private static String pathContribuicaoUmidade = "contribuicaoUmidade.txt";	//arquivo de contribuicao do irrigador
 	private static File arqUmidade = null;
 	private static File arqContribuicaoUmidade = null;
-	private static int contribuicaoUmidadeAmbiente = -1;
+	private static int contribuicaoUmidadeAmbiente = -1;	//ambiente fora da estufa sempre diminui a umidade
 	private static int timeUpdadeSolo = 1;
 
-	/* Metodo que retorna o arquivo de umidade para lida ou escrita*/
+	/* Metodo que retorna o arquivo de umidade para leitura ou escrita*/
 	public static File getArqUmidade() throws IOException {
 		if(arqUmidade == null)
 			createFileUmidade();
 		return arqUmidade;
 	}
 	
-	/* Metodo que retorna o arquivo de contribuicao de umidade para lida ou escrita*/
+	/* Metodo que retorna o arquivo de contribuicao de umidade para leitura ou escrita*/
 	public static File getArqContribuicaoUmidade() throws IOException {
 		if(arqContribuicaoUmidade == null)
 			createFileContribuicaoUmidade();
 		return arqContribuicaoUmidade;
 	}
 	
-	/* Esse metodo eh utilizado apenas pelos atuadores e gerenciador
-	 * O gerenciador utiliza para resetar os status do equipamento(quando desligado ou iniciado) e os atuadores para simulacao
-	 * Atraves dele o fator de contribuicao de umidade(que afeta a umidade do solo)
-	 * Eh alterado pelo arquivo contribuicaoUmidade.txt
-	 * Apenas a classe UmidadeSolo tem acesso para lida e escrita no arquivo*/
+	//metodo que muda o fator de contribuicao do irrigador (liga ou desliga)
+	//contribuicao: eh o numero de unidades com que um atuador muda o valor do seu parametro
+	//contribuicao do irrigador = 2. Significa que o irrigador aumenta a umidade de 2 em 2 (ligado)
+	//contribuicao do irrigador = 0. Significa que o irrigador nao aumenta nem diminui a umidade (desligado)
 	public static void setContribuicaoUmidadeEquip(Integer alteracao) {
 		try {
 			FileWriter fw = new FileWriter(getArqContribuicaoUmidade());
@@ -45,8 +47,8 @@ public class UmidadeSolo extends Thread{
 		}
 	}
 
-	/* Esse metodo realiza a cricao do arquivo de umidade(utilizado para simular a umidade) caso ele nao exista
-	 * Caso ele ja se encontre criado eh feito uma checagem no arquivo, verificando se ele esta vazio(se isto ocorrer passa o valor default)
+	/* Esse metodo realiza a criacao do arquivo de umidade(utilizado para simular a umidade) caso ele nao exista
+	 * Caso ele ja se encontre criado eh feito uma checagem no arquivo, verificando se ele esta vazio(se isto ocorrer, passa o valor default)
 	 * Se ja se encontrar dados no arquivo entao nao eh feito nada*/
 	private static void createFileUmidade() throws IOException {
 		Integer defaultUmidade = 30;
@@ -66,10 +68,11 @@ public class UmidadeSolo extends Thread{
 				buffWrite.append(defaultUmidade.toString() + String.valueOf('\n'));/*Inicializa o arquivo com uma umidade Inicial*/
 				buffWrite.close();
 			}
+			buffRead.close();
 		}
 	}
 	
-	/* Esse metodo realiza a cricao do arquivo de contribuicao(utilizado para simular as contribuicoes dos atuadores na umidade) caso ele nao exista
+	/* Esse metodo realiza a criacao do arquivo de contribuicao(utilizado para simular a contribuicao do atuador na umidade) caso ele nao exista
 	 * Caso ele ja se encontre criado eh feito uma checagem no arquivo, verificando se ele esta vazio(se isto ocorrer passa o valor default)
 	 * Se ja se encontrar dados no arquivo entao nao eh feito nada*/
 	private static void createFileContribuicaoUmidade() throws IOException{
@@ -90,28 +93,37 @@ public class UmidadeSolo extends Thread{
 				buffWrite.append(contribuicaoDefault.toString() + String.valueOf('\n'));/*Inicializa o arquivo com uma contribuicao Inicial*/
 				buffWrite.close();
 			}
+			buffRead.close();
 		}
 	}
 	
 	/* Esse metodo obtem a umidade atual lendo o arquivo umidade.txt
-	 * E pega o fator de contribuicao do arquivo contribuicao.txt
+	 * E pega o fator de contribuicao do irrigador
 	 * Tendo esses valores eh aplicado o fator de contribuicao do ambiente
-	 * E retornado a umidade atual*/
+	 * E retornado a umidade atualizada*/
 	private int updateUmidade() throws FileNotFoundException, IOException{
 		FileReader fr = new FileReader(getArqUmidade());
 		BufferedReader buffRead = new BufferedReader(fr);
 		Integer contribuicaoUmidadeEquip ;
 		/*Lendo a umidade do arquivo*/
-		Integer umidadeAtual = Integer.parseInt(buffRead.readLine());//Le a linha e repassa para inteiro
-		//System.out.println("Lido no arquivo: " + umidadeAtual);		
+		Integer umidadeAtual = Integer.parseInt(buffRead.readLine());
 		
-		/*Lendo contribuicao dos equipamentos no arquivo*/
+		if(umidadeAtual <= 0) {//quando umidade chega a 0, para de diminuir
+			contribuicaoUmidadeAmbiente = 0;
+		} else {
+			contribuicaoUmidadeAmbiente = -1;
+		}
+		
+		/*Lendo contribuicao do irrigador no arquivo*/
 		fr = new FileReader(getArqContribuicaoUmidade());
 		buffRead = new BufferedReader(fr);
-		contribuicaoUmidadeEquip = Integer.parseInt(buffRead.readLine());//Atualiza a contribuicao do equipamento
+		contribuicaoUmidadeEquip = Integer.parseInt(buffRead.readLine());
+		buffRead.close();
+
 		return umidadeAtual + contribuicaoUmidadeAmbiente + contribuicaoUmidadeEquip;
 	}
 	
+	//atualiza a umidade a cada segundo
 	@Override
 	public void run() {
 		Integer umidadeSoloAtual;
@@ -119,11 +131,11 @@ public class UmidadeSolo extends Thread{
 		BufferedWriter buffWrite = null;
 		while(true) {
 			try {
-				TimeUnit.SECONDS.sleep(timeUpdadeSolo);//Espera 2 segundos pra alterar os valores do solo
-				umidadeSoloAtual = updateUmidade();
+				TimeUnit.SECONDS.sleep(timeUpdadeSolo);
+				umidadeSoloAtual = updateUmidade();	//pega novo valor da umidade
 				fw = new FileWriter(getArqUmidade());
 				buffWrite = new BufferedWriter(fw);
-				buffWrite.append(umidadeSoloAtual.toString() + '\n');
+				buffWrite.append(umidadeSoloAtual.toString() + '\n');	//escreve novo valor no arquivo da umidade
 				buffWrite.close();
 			} catch (FileNotFoundException e) {
 				e.printStackTrace();

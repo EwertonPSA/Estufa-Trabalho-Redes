@@ -5,23 +5,25 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
 public class Resfriador{
-	private InetSocketAddress hostAddress = null;
-	private SocketChannel client = null;
-	private boolean statusRegistro;
-	private String header;
-	private String idEquipamento = "5";
-	private Temperatura ambiente;
+	private InetSocketAddress hostAddress = null;	//endereco IP local host
+	private SocketChannel client = null;	//socket
+	private boolean statusRegistro;		//status que verifica se o atuador foi identificado pelo gerenciador
+	private String header;	//header da mensagem
+	private String idEquipamento = "5";	//id do resfriador
 
+	/* Inicializa a comunicacao do resfriador com 
+	 * O gerenciador, depois disso ele aguarda ateh que a resposta do gerenciador 
+	 * informe que ele se encontra Registrado
+	 * Se houver problema no registro eh reportado erro*/
 	public Resfriador() throws IOException {
-		this.ambiente = new Temperatura();
-		this.hostAddress = new InetSocketAddress("127.0.0.1", 9545);
-		this.client = SocketChannel.open(hostAddress);
-		this.client.configureBlocking(false);
+		this.hostAddress = new InetSocketAddress("127.0.0.1", 9545);	//cria um host de acesso
+		this.client = SocketChannel.open(hostAddress);	//conexao com o IP e a porta
+		this.client.configureBlocking(false);	//configura os socket como nao-bloqueante
 		this.statusRegistro = false;
 		if(client.isConnectionPending())//Caso a conexao nao tenha sido finalizada
 			client.finishConnect();
 		
-		header = "1";
+		header = "1";	//header da mensagem de identificacao
 		client.write(ByteBuffer.wrap((header + idEquipamento).getBytes()));//Manda a mensagem de Identificacao: header + id
 		
 		ByteBuffer newBuff = ByteBuffer.allocate(256);
@@ -29,12 +31,13 @@ public class Resfriador{
 		byte[] msgGerenciador;
 		try {
 			System.out.println("Aguardando mensagem do Gerenciador..");
+			//aguarda mensagem do gerenciador
 			do {
-				bytesRead = client.read(newBuff);
-			}while(bytesRead <= 0);
-			msgGerenciador = newBuff.array();
+				bytesRead = client.read(newBuff);	//salva mensagem em newBuff
+			}while(bytesRead <= 0);	//repete enquanto nao recebe nada
+			msgGerenciador = newBuff.array();	//passa mensagem para array de bytes
 			
-			if(bytesRead == 1 && msgGerenciador[0] == '2') {
+			if(bytesRead == 1 && msgGerenciador[0] == '2') {	//se for mensagem de confirmacao de identificacao
 				System.out.println("Resfriador foi identificado pelo servidor ");
 				this.statusRegistro = true;
 			}else if(bytesRead == 2) {
@@ -49,10 +52,10 @@ public class Resfriador{
 				
 				if(this.statusRegistro == true && msgGerenciador[1] == '5') {//Comando de desativacao do equipamento
 					System.out.println("Resfriador desativado!");
-					Temperatura.setContribuicaoTemperaturaEquip(0);
+					Temperatura.setContribuicaoResfriador(0);	//desliga o resfriador (metodo sera explicado na classe Temperatura)
 				}else if(this.statusRegistro == true && msgGerenciador[1] == '4') {//Comando de ativacao do equipamento
 					System.out.println("Resfriador ativado!");
-					Temperatura.setContribuicaoTemperaturaEquip(-1);
+					Temperatura.setContribuicaoResfriador(-2);	//liga o resfriador
 				}
 			}else {
 				throw new RuntimeException("Problema de registro com o servidor");
@@ -66,6 +69,7 @@ public class Resfriador{
 		return client;
 	}
 
+	//aguarda comandos do gerenciador para ligar ou desligar
 	public void communicate(){
 		int bytesRead = 0;
 		byte[] msgGerenciador;
@@ -73,16 +77,18 @@ public class Resfriador{
 			ByteBuffer newBuff = ByteBuffer.allocate(256);
 			try {
 				System.out.println("Aguardando mensagem do Gerenciador..");
+				//aguarda mensagem do gerenciador
 				do {
-					bytesRead = client.read(newBuff);
-				}while(bytesRead <= 0);
-				msgGerenciador = newBuff.array();
+					bytesRead = client.read(newBuff);	//salva em newBuff
+				}while(bytesRead <= 0);	//repete enquanto nao recebe nada
+				msgGerenciador = newBuff.array();	//passa mensagem para array de bytes
+				
 				if(this.statusRegistro == true && msgGerenciador[0] == '5') {//Comando de desativacao do equipamento
 					System.out.println("Resfriador desativado!");
-					Temperatura.setContribuicaoTemperaturaEquip(0);
-				}else if(this.statusRegistro == true && msgGerenciador[0] == '4') {
+					Temperatura.setContribuicaoResfriador(0);	//desliga resfriador
+				}else if(this.statusRegistro == true && msgGerenciador[0] == '4') {	//comando de ativacao do equipamento
 					System.out.println("Resfriador ativado!");
-					Temperatura.setContribuicaoTemperaturaEquip(-2);
+					Temperatura.setContribuicaoResfriador(-2);	//liga resfriador
 				}
 			} catch (IOException e) {
 				System.out.println("Servidor foi desconectado, desligando equipamento!");

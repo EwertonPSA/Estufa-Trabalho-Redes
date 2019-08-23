@@ -7,6 +7,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
+//classe utilizada para simular a umidade do solo
+//umidade foi simulada a partir de arquivos de leitura e escrita
+
 public class UmidadeSolo extends Thread{
 	private static String pathUmidade = "umidade.txt";/*arquivo que simula umidade*/
 	private static String pathContribuicaoUmidade = "contribuicaoUmidade.txt";	//arquivo de contribuicao do irrigador
@@ -15,14 +18,14 @@ public class UmidadeSolo extends Thread{
 	private static int contribuicaoUmidadeAmbiente = -1;	//ambiente fora da estufa sempre diminui a umidade
 	private static int timeUpdadeSolo = 1;
 
-	/* Metodo que retorna o arquivo de umidade para lida ou escrita*/
+	/* Metodo que retorna o arquivo de umidade para leitura ou escrita*/
 	public static File getArqUmidade() throws IOException {
 		if(arqUmidade == null)
 			createFileUmidade();
 		return arqUmidade;
 	}
 	
-	/* Metodo que retorna o arquivo de contribuicao de umidade para lida ou escrita*/
+	/* Metodo que retorna o arquivo de contribuicao de umidade para leitura ou escrita*/
 	public static File getArqContribuicaoUmidade() throws IOException {
 		if(arqContribuicaoUmidade == null)
 			createFileContribuicaoUmidade();
@@ -44,8 +47,8 @@ public class UmidadeSolo extends Thread{
 		}
 	}
 
-	/* Esse metodo realiza a cricao do arquivo de umidade(utilizado para simular a umidade) caso ele nao exista
-	 * Caso ele ja se encontre criado eh feito uma checagem no arquivo, verificando se ele esta vazio(se isto ocorrer passa o valor default)
+	/* Esse metodo realiza a criacao do arquivo de umidade(utilizado para simular a umidade) caso ele nao exista
+	 * Caso ele ja se encontre criado eh feito uma checagem no arquivo, verificando se ele esta vazio(se isto ocorrer, passa o valor default)
 	 * Se ja se encontrar dados no arquivo entao nao eh feito nada*/
 	private static void createFileUmidade() throws IOException {
 		Integer defaultUmidade = 30;
@@ -69,7 +72,7 @@ public class UmidadeSolo extends Thread{
 		}
 	}
 	
-	/* Esse metodo realiza a cricao do arquivo de contribuicao(utilizado para simular as contribuicoes dos atuadores na umidade) caso ele nao exista
+	/* Esse metodo realiza a criacao do arquivo de contribuicao(utilizado para simular a contribuicao do atuador na umidade) caso ele nao exista
 	 * Caso ele ja se encontre criado eh feito uma checagem no arquivo, verificando se ele esta vazio(se isto ocorrer passa o valor default)
 	 * Se ja se encontrar dados no arquivo entao nao eh feito nada*/
 	private static void createFileContribuicaoUmidade() throws IOException{
@@ -95,7 +98,7 @@ public class UmidadeSolo extends Thread{
 	}
 	
 	/* Esse metodo obtem a umidade atual lendo o arquivo umidade.txt
-	 * E pega o fator de contribuicao do arquivo contribuicao.txt
+	 * E pega o fator de contribuicao do irrigador
 	 * Tendo esses valores eh aplicado o fator de contribuicao do ambiente
 	 * E retornado a umidade atualizada*/
 	private int updateUmidade() throws FileNotFoundException, IOException{
@@ -103,7 +106,7 @@ public class UmidadeSolo extends Thread{
 		BufferedReader buffRead = new BufferedReader(fr);
 		Integer contribuicaoUmidadeEquip ;
 		/*Lendo a umidade do arquivo*/
-		Integer umidadeAtual = Integer.parseInt(buffRead.readLine());//Le a linha e repassa para inteiro
+		Integer umidadeAtual = Integer.parseInt(buffRead.readLine());
 		
 		if(umidadeAtual <= 0) {//quando umidade chega a 0, para de diminuir
 			contribuicaoUmidadeAmbiente = 0;
@@ -111,12 +114,12 @@ public class UmidadeSolo extends Thread{
 			contribuicaoUmidadeAmbiente = -1;
 		}
 		
-		/*Lendo contribuicao dos equipamentos no arquivo*/
+		/*Lendo contribuicao do irrigador no arquivo*/
 		fr = new FileReader(getArqContribuicaoUmidade());
 		buffRead = new BufferedReader(fr);
-		contribuicaoUmidadeEquip = Integer.parseInt(buffRead.readLine());//Atualiza a contribuicao do equipamento
+		contribuicaoUmidadeEquip = Integer.parseInt(buffRead.readLine());
 		buffRead.close();
-		//retorna valor da umidade somada com os fatores de contribuicao
+
 		return umidadeAtual + contribuicaoUmidadeAmbiente + contribuicaoUmidadeEquip;
 	}
 	

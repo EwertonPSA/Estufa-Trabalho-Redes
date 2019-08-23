@@ -1,4 +1,5 @@
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
@@ -16,7 +17,7 @@ public class SensorTemperatura extends Thread{
 	
 	/* Inicializa a comunicacao do sensor de temperatura com 
 	 * O gerenciador, depois disso ele aguarda ateh que a resposta do gerenciador 
-	 * informande que ele se encontra Registrado
+	 * informe que ele se encontra Registrado
 	 * Se houver problema no registro eh reportado erro*/
 	public SensorTemperatura() throws IOException{
 		byte msgServerByte[];
@@ -44,28 +45,26 @@ public class SensorTemperatura extends Thread{
 	}
 	
 	// sensor faz a leitura da temperatura da estufa
-	private String readFileTemperatura() throws FileNotFoundException, IOException {
+	private byte[] readFileTemperatura() throws FileNotFoundException, IOException {
 		FileReader fr = new FileReader(Temperatura.getArqTemperatura());	//arquivo que contem a temperatura
 		BufferedReader buffRead = new BufferedReader(fr);	//leitor do arquivo
 		int temperaturaInt = Integer.parseInt(buffRead.readLine());//Le como string, passa pra inteiro
-		//Obtem o inteiro como representacao em string (com os bytes do inteiro como caracteres)
-		String sequenciaNumero = intToChar(temperaturaInt);
 		System.out.println("Leitura de temperatura:" + temperaturaInt + "°C");
 		buffRead.close();
-		return sequenciaNumero;
+		
+		//retorna o inteiro como vetor de bytes
+		return intToByte(temperaturaInt);
 	}
-	
-	/* Pega um valor inteiro e passa pra uma string com os bytes do inteiro como caracteres
-	 * Ele eh usado para obter a representacao correta do inteiro em 4 bytes
-	 * No qual deve ser incluido no corpo da mensagem a ser enviada pro servidor*/
-	private String intToChar(int temperaturaInt) {
-		int aux = temperaturaInt;
-		byte[] seqNumero = new byte[4];		//salva os bytes do inteiro
+
+	// Converte um inteiro para um vetor de bytes com seu valor binario
+	private static byte[] intToByte(int inteiro) {
+		int aux = inteiro;
+		byte[] seqNumero = new byte[4];
 		for(int i = 0; i < 4; i++) {
-			seqNumero[i] = (byte) (aux>>(i*8) & 0xff);	//separa os bytes com bit shift e operacao and
+			seqNumero[i] = (byte) ((aux>>(i*8)) & (int)0xff);
 		}
-		String r = new String(seqNumero);	//transforma os bytes em string
-		return r;
+		
+		return seqNumero;
 	}
 
 	//envia as leituras de temperatura a cada segundo
@@ -74,17 +73,22 @@ public class SensorTemperatura extends Thread{
 		String msgSensor;
 		header = "3";	//header da mensagem de envio de leitura
 		
+		
 		while(true) {
+			ByteArrayOutputStream byteArray = new ByteArrayOutputStream();	//estrutura para concatenar arrays de bytes
 			TimeUnit.SECONDS.sleep(1);
-			try {//cria a mensagem para enviar a leitura
-				msgSensor = header + idEquipamento + readFileTemperatura();//Header + id + temperatura
+			try {//monta a mensagem
+				msgSensor = header + idEquipamento;//Header + id
+				byteArray.write(msgSensor.getBytes());
+				
+				byteArray.write(readFileTemperatura());	//concatena com o novo valor da temperatura
 			}catch(Exception e) {
 				System.out.println("Problema ao abrir o arquivo para leitura!");
 				return;
 			}
 			
-			try {/*Envia a temperatura pro gerenciador*/
-				buffer = ByteBuffer.wrap(msgSensor.getBytes());
+			try {//envia a mensagem para o gerenciador					
+				buffer = ByteBuffer.wrap(byteArray.toByteArray());
 				client.write(buffer);
 				buffer.clear();
 			}catch(Exception e) {
@@ -101,6 +105,8 @@ public class SensorTemperatura extends Thread{
 		try {
 			SensorTemperatura sensor = new SensorTemperatura();
 			sensor.communicate();
-		}catch(Exception e) {;}
+		}catch(Exception e) {
+			System.out.println("Erro de conexao com gerenciador!");
+		}
 	}
 }

@@ -1,4 +1,5 @@
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
@@ -16,7 +17,7 @@ public class SensorUmidade {
 	
 	/* Inicializa a comunicacao do sensor de umidade com 
 	 * O gerenciador, depois disso ele aguarda ateh que a resposta do gerenciador 
-	 * informande que ele se encontra Registrado
+	 * informe que ele se encontra Registrado
 	 * Se houver problema no registro eh reportado erro*/
 	public SensorUmidade() throws IOException{
 		byte msgServerByte[];
@@ -43,46 +44,47 @@ public class SensorUmidade {
 	}
 	
 	//retorna a leitura da umidade
-	private String readFileUmidade() throws FileNotFoundException, IOException {
+	private byte[] readFileUmidade() throws FileNotFoundException, IOException {
 		FileReader fr = new FileReader(UmidadeSolo.getArqUmidade());	//arquivo
 		BufferedReader buffRead = new BufferedReader(fr);	//leitor
-		int umidadeInt = Integer.parseInt(buffRead.readLine());//Le como string, passa pra inteiro
-		String sequenciaNumero = intToChar(umidadeInt);//Obtem o inteiro como representacao em string (bytes do inteiro como caracteres)
+		int umidadeInt = Integer.parseInt(buffRead.readLine());//Le como string, passa pra inteiro		
 		System.out.println("Leitura de Umidade:" + umidadeInt + "%");
 		buffRead.close();
-		return sequenciaNumero;
+		return intToByte(umidadeInt);
 	}
 	
-	/* Pega um valor inteiro e passa pra uma string com os bytes do inteiro como caracteres
-	 * Ele eh usado para obter a representacao correta do inteiro em 4 bytes
-	 * No qual deve ser incluido no corpo da mensagem a ser enviada pro servidor*/
-	private String intToChar(int temperaturaInt) {
-		int aux = temperaturaInt;
-		byte[] seqNumero = new byte[4];		//salva os bytes do inteiro
+	// Converte um inteiro para um vetor de bytes com seu valor binario
+	private static byte[] intToByte(int inteiro) {
+		int aux = inteiro;
+		byte[] seqNumero = new byte[4];
 		for(int i = 0; i < 4; i++) {
-			seqNumero[i] = (byte) (aux>>(i*8) & 0xff);	//separa os bytes com bit shift e operacao and
+			seqNumero[i] = (byte) ((aux>>(i*8)) & (int)0xff);
 		}
-		String r = new String(seqNumero);	//transforma os bytes em string
-		return r;
+		
+		return seqNumero;
 	}
 
 	//envia as leituras da umidade a cada segundo
 	public void communicate() throws InterruptedException {
 		ByteBuffer buffer = ByteBuffer.allocate(256);
 		String msgSensor;
-		header = "3";	//header da mensagem de envio de leitura
+		header = "3";	//header da mensagem de envio de leitura		
 		
 		while(true) {
 			TimeUnit.SECONDS.sleep(1);
+			ByteArrayOutputStream byteArray = new ByteArrayOutputStream();	//estrutura para concatenar arrays de bytes
 			try {//monta a mensagem
-				msgSensor = header + idEquipamento + readFileUmidade();//Header + id + umidade
+				msgSensor = header + idEquipamento;//Header + id				
+				byteArray.write(msgSensor.getBytes());
+				
+				byteArray.write(readFileUmidade());	//concatena com o novo valor da umidade
 			}catch(Exception e) {
 				System.out.println("Problema ao abrir o arquivo para leitura!");
 				return;
 			}
 			
-			try {/*Envia a umidade pro gerenciador*/
-				buffer = ByteBuffer.wrap(msgSensor.getBytes());
+			try {//envia a mensagem ao gerenciador
+				buffer = ByteBuffer.wrap(byteArray.toByteArray());
 				client.write(buffer);
 				buffer.clear();
 			}catch(Exception e) {
@@ -99,6 +101,8 @@ public class SensorUmidade {
 		try {
 			SensorUmidade sensor = new SensorUmidade();
 			sensor.communicate();
-		}catch(Exception e) {;}
+		}catch(Exception e) {
+			System.out.println("Erro de conexao com gerenciador!");
+		}
 	}
 }

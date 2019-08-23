@@ -1,6 +1,4 @@
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -8,38 +6,32 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.InputMismatchException;
 import java.util.Scanner;
-import java.util.concurrent.TimeUnit;
 
 public class Cliente {
 	public InetSocketAddress hostAddress = null;
 	public SocketChannel client = null;
-	private String idCliente = "8";
 	
-	/* Inicializa a comunicacao do sensor de temperatura com 
-	 * O gerenciador, depois disso ele aguarda ateh que a resposta do gerenciador 
-	 * informande que ele se encontra Registrado
-	 * Se houver problema no registro eh reportado erro*/
-	public Cliente() throws IOException{
-		Scanner teclado = new Scanner(System.in);
-		String header;
-		
-		ByteBuffer msgServer;
-		
+	public Cliente() throws IOException{		
+		// Envia mensagem 1 ao Gerenciador, solicitando identificacao
 		this.hostAddress = new InetSocketAddress("127.0.0.1", 9545);
 		this.client = SocketChannel.open(hostAddress);
 		this.client.configureBlocking(false);
 		
-		if(client.isConnectionPending())//Caso a conexao nao tenha sido finalizada
+		// Caso a conexao nao tenha sido finalizada
+		if(client.isConnectionPending())
 			client.finishConnect();
 		
-		header = "1";
-		client.write(ByteBuffer.wrap((header + idCliente).getBytes()));//Manda a mensagem de Identificacao: header + id
+		String header = "1";
+		String idCliente = "8";
+		client.write(ByteBuffer.wrap((header + idCliente).getBytes()));
 		
+		// Espera pela mensagem 2, enviada pelo Gerenciador
+		ByteBuffer msgServer;
 		msgServer = ByteBuffer.allocate(256);		
 		int bytesRead = 0;
 		do {
 			bytesRead = client.read(msgServer);
-		}while(bytesRead <= 0);/*Aguarda uma resposta do servidor*/
+		} while(bytesRead <= 0);
 		
 		byte msgServerByte[] = msgServer.array();
 		if(msgServerByte[0] == '2') {
@@ -49,43 +41,106 @@ public class Cliente {
 		}
 	}
 	
-	/* Pega um valor inteiro e passa pra um vetor de char
-	 * Ele eh usado para obter a representacao correta do inteiro em 4 bytes
-	 * No qual deve ser incluido no corpo da mensagem a ser enviada pro servidor*/
-	private String intToChar(int temperaturaInt) {
-		int aux = temperaturaInt;
+	// Converte um inteiro para um vetor de bytes com seu valor binario
+	private static byte[] intToByte(int inteiro) {
+		int aux = inteiro;
 		byte[] seqNumero = new byte[4];
 		for(int i = 0; i < 4; i++) {
-			seqNumero[i] = (byte) (aux>>(i*8) & 0xff);
+			seqNumero[i] = (byte) ((aux>>(i*8)) & (int)0xff);
 		}
-		String r = new String(seqNumero);
-		return r;
+		
+		return seqNumero;
 	}
-	
-	
+
+	// Converte um array de bytes para seu valor inteiro
 	private static Integer byteToInt(int position, byte[] arr) {
 		int num = 0;
 		for(int i = 3; i >= 0; i--) {
 			num = num<<8;
-			num = num + (int)(arr[i+position]&0xff);
+			num = num | (arr[i+position] & (int)0xff);
 		}
 		return num;
 	}
-
-	public void communicate() throws InterruptedException {
-		Scanner teclado = new Scanner(System.in);
+	
+	// Envia mensagem 6 (Configuracao dos parametros do gerenciador) ao gerenciador
+	private void ConfiguraLimiares(String tipoParametro, int minVal, int maxVal) throws Exception {
 		String header = "6";
-		String tipoParametro;
-		int minVal = 0, maxVal = 10;
-		int bytesRead = 0;
-		String msg;
-		String resposta;
+		String msg = header + tipoParametro;
+		ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
+		byteArray.write(msg.getBytes());
+		byteArray.write(intToByte(minVal));
+		byteArray.write(intToByte(maxVal));
+		ByteBuffer bufferWrite = ByteBuffer.allocate(256);
+		
+		try {
+			bufferWrite = ByteBuffer.wrap(byteArray.toByteArray());
+			client.write(bufferWrite);
+			bufferWrite.clear();
+		} catch(Exception e) {
+			System.out.println("Servidor desligado, desligando conexao!");
+			try {
+				client.close();
+			} catch (IOException e1) {;}			
+			throw e;
+		}		
+	}
 
-		while(true) {
-			ByteBuffer bufferWrite = ByteBuffer.allocate(256);
-			ByteBuffer buffRead = ByteBuffer.allocate(256);
+	// Envia mensagem 7 (Requisicao da ultima leitura do sensor) ao gerenciador
+	// e recebe a mensagem 8 contendo a informacao requisitada
+	private void RequisitaLeitura(String tipoParametro) throws Exception {
+		String header = "7";
+		String msg = header + tipoParametro;
+		int bytesRead = 0;
+		ByteBuffer bufferWrite = ByteBuffer.allocate(256);
+		ByteBuffer bufferRead = ByteBuffer.allocate(256);
+		
+		try {
+			bufferWrite = ByteBuffer.wrap(msg.getBytes());
+			client.write(bufferWrite);
+			bufferWrite.clear();
 			
-			// Menu do usuario			
+			do {
+				bytesRead = client.read(bufferRead);
+			} while(bytesRead <= 0);
+			
+			byte[] arr = bufferRead.array();	
+			
+			if(arr[0] == '8') {
+				char tipo = (char)arr[1];
+				int valor = byteToInt(2, arr);
+				switch(tipo) {
+				case '1':
+					System.out.println("Temperatura: " + valor + "°C");
+					break;
+				case '2':
+					System.out.println("Umidade do Solo: " + valor + "%");
+					break;
+				case '3':
+					System.out.println("Nivel de CO2: " + valor + " ppmv");
+					break;
+				}
+			} else {
+				System.out.println("Erro na resposta do servidor!");
+			}
+			bufferRead.clear();
+		} catch(Exception e) {
+			System.out.println("Servidor desligado, desligando conexao!");
+			try {
+				client.close();
+			} catch (IOException e1) {;}
+			throw e;
+		}
+	}
+	
+	// Loop do Cliente, onde se recebe a entrada do usuario e envia as mensagens 6 e 7 ao gerenciador
+	public void communicate() throws Exception {
+		Scanner teclado = new Scanner(System.in);
+		String tipoParametro;
+		int minVal = 0, maxVal = 0;
+		int comando = 0;
+
+		while(true) {			
+			// Menu do usuario
 			System.out.println( 
 				"   1 - Configurar limiares de temperatura\n" +
 				"   2 - Configurar limiares de umidade\n" +
@@ -96,92 +151,50 @@ public class Cliente {
 				"Insira o valor [1-6] correspondente ao comando: "
 			);
 			
-			int comando;
 			try {
 				// Le comando e parametros
 				comando = teclado.nextInt();
+				tipoParametro = Integer.toString((((comando-1)%3)+1));
 				if(comando >= 1 && comando <= 3) {
-					System.out.println("Valor minimo: ");
-					minVal = teclado.nextInt();				
-					System.out.println("Valor maximo: ");
-					maxVal = teclado.nextInt();				
-					header = "6";
+					System.out.print("Valor minimo: ");
+					minVal = teclado.nextInt();			
+					System.out.print("Valor maximo: ");
+					maxVal = teclado.nextInt();
+					
+					// Trata valores minimo e maximo
 					if(maxVal <= minVal) {
 						System.out.println("Valores invalidos!");
 						continue;
+					}
+					
+					// Trata valores minimo e maximo para limiares de CO2 e umidade
+					if(comando == 2){
+						if(minVal < 0 || maxVal > 100) {
+							System.out.println("Valores invalidos para os limiares!");					
+							continue;
+						}
 					}					
-				} else if(comando >= 4 && comando <= 6) {
-					header = "7";
-				} else {
-					System.out.println("Valor invalido!");
-					continue;
-				}
-			}catch(InputMismatchException e) {
-				System.out.println("Valores de configuracao invalidos!");
-				teclado.next();
-				continue;
-			}
-			
-			// Trata valores minimo e maximo para limiares de CO2 e umidade
-			if(comando == 2 || comando == 3){
-				if(minVal < 0 || maxVal > 100) {
-					System.out.println("Valores invalidos para os limiares!");					
-					continue;
-				}
-			}
-			
-			// Monta a mensagem para o gerenciador
-			tipoParametro = Integer.toString((((comando-1)%3)+1));
-			if(header == "6") {
-				msg = header + tipoParametro +  intToChar(minVal) + intToChar(maxVal);
-			} else {
-				msg = header + tipoParametro;
-			}
-			
-			try {
-				bufferWrite = ByteBuffer.wrap(msg.getBytes());
-				client.write(bufferWrite);
-				bufferWrite.clear();
-				
-				do {
-					bytesRead = client.read(buffRead);
-				}while(bytesRead <= 0);
-				
-				resposta = new String(buffRead.array(), 0, buffRead.position());
-				byte[] arr = buffRead.array();
-				System.out.println("Resposta do Gerenciador: ");
-				
-				// Interpreta a resposta de acordo com a mensagem enviada anteriormente
-				// Obs: "header" corresponde ao header da mensagem enviada pelo CLIENTE
-				if(header == "6") {
-					System.out.println(resposta);
-				} else if(header == "7") {
-					if(arr[0] == '8') {
-						char tipo = (char)arr[1];
-						int valor = byteToInt(2, arr);
-						switch(tipo) {
-						case '1':
-							System.out.println("Temperatura: " + valor + "°C");
-							break;
-						case '2':
-							System.out.println("Umidade do Solo: " + valor + "%");
-							break;
-						case '3':
-							System.out.println("Nivel de CO2: " + valor + " ppmv");
-							break;
+					if(comando == 3){
+						if(minVal < 0) {
+							System.out.println("Valor invalido para o limiar inferior!");					
+							continue;
 						}
 					}
+					
+					// Monta e envia a mensagem ao Gerenciador					
+					ConfiguraLimiares(tipoParametro, minVal, maxVal);
+					
+				} else if(comando >= 4 && comando <= 6) {
+					// Monta e envia a mensagem ao Gerenciador e recebe a leitura do sensor					
+					RequisitaLeitura(tipoParametro);
+				} else {
+					System.out.println("Valor de comando invalido!");
+					continue;
 				}
-				
-				buffRead.clear();
-			}catch(Exception e) {
-				e.printStackTrace();
-				System.out.println("Servidor desligado, desligando conexao!");
-				try {
-					client.close();
-				} catch (IOException e1) {;}
-				teclado.close();
-				return;
+			} catch(InputMismatchException e) {	// Caso o valor inserido nao seja um inteiro
+				System.out.println("O valor deve ser um numero inteiro!");
+				teclado.next();
+				continue;
 			}
 		}
 	}

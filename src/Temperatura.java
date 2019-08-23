@@ -25,14 +25,14 @@ public class Temperatura extends Thread{
 	private static int contribuicaoTemperaturaAmbiente = 0;	//contribuicao da temperatura ambiente (fora da estufa)
 	private static int TemperaturaAmbiente = 0;	//valor da temperatura ambiente
 
-	/* Metodo que retorna o arquivo de temperatura para lida ou escrita*/
+	/* Metodo que retorna o arquivo de temperatura para leitura ou escrita*/
 	public static File getArqTemperatura() throws IOException {
 		if(arqTemperatura == null)
 			createFileTemperatura();
 		return arqTemperatura;
 	}
 	
-	/* Metodo que retorna o arquivo de contribuicao do aquecedor para lida ou escrita*/
+	/* Metodo que retorna o arquivo de contribuicao do aquecedor para leitura ou escrita*/
 	public static File getArqContribuicaoAquecedor() throws IOException {
 		if(arqContribuicaoAquecedor == null)
 			createFileContribuicaoAquecedor();
@@ -78,13 +78,12 @@ public class Temperatura extends Thread{
 			BufferedWriter buffWrite = new BufferedWriter(fw);	//escritor
 			buffWrite.append(alteracao.toString() + String.valueOf('\n'));	//escreve novo valor de contribuicao
 			buffWrite.close();
-			//System.out.println("Alterado contribuicao " + alteracao);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
 
-	/* Esse metodo realiza a cricao do arquivo de temperatura(utilizado para simular a temperatura) caso ele nao exista
+	/* Esse metodo realiza a criacao do arquivo de temperatura(utilizado para simular a temperatura) caso ele nao exista
 	 * Caso ele ja se encontre criado eh feito uma checagem no arquivo, verificando se ele esta vazio(se isto ocorrer passa o valor default)
 	 * Se ja se encontrar dados no arquivo entao nao eh feito nada*/
 	private static void createFileTemperatura() throws IOException {
@@ -109,7 +108,7 @@ public class Temperatura extends Thread{
 		}
 	}
 	
-	/* Esse metodo realiza a cricao do arquivo de contribuicao do aquecedor caso ele nao exista
+	/* Esse metodo realiza a criacao do arquivo de contribuicao do aquecedor caso ele nao exista
 	 * Caso ele ja se encontre criado eh feito uma checagem no arquivo, verificando se ele esta vazio(se isto ocorrer passa o valor default)
 	 * Se ja se encontrar dados no arquivo entao nao eh feito nada*/
 	private static void createFileContribuicaoAquecedor() throws IOException{
@@ -134,7 +133,7 @@ public class Temperatura extends Thread{
 		}
 	}
 	
-	/* Esse metodo realiza a cricao do arquivo de contribuicao do resfriador caso ele nao exista
+	/* Esse metodo realiza a criacao do arquivo de contribuicao do resfriador caso ele nao exista
 	 * Caso ele ja se encontre criado eh feito uma checagem no arquivo, verificando se ele esta vazio(se isto ocorrer passa o valor default)
 	 * Se ja se encontrar dados no arquivo entao nao eh feito nada*/
 	private static void createFileContribuicaoResfriador() throws IOException{
@@ -159,7 +158,7 @@ public class Temperatura extends Thread{
 		}
 	}
 	
-	/* Esse metodo realiza a cricao do arquivo de temperatura ambiente caso ele nao exista
+	/* Esse metodo realiza a criacao do arquivo de temperatura ambiente caso ele nao exista
 	 * Caso ele ja se encontre criado eh feito uma checagem no arquivo, verificando se ele esta vazio(se isto ocorrer passa o valor default)
 	 * Se ja se encontrar dados no arquivo entao nao eh feito nada*/
 	private static void createFileTemperaturaAmbiente() throws IOException{
@@ -185,7 +184,7 @@ public class Temperatura extends Thread{
 	}
 	
 	/* Esse metodo obtem a temperatura atual lendo o arquivo temperatura.txt
-	 * E pega os fatores de contribuicao dos arquivos de contribuicao
+	 * E pega os fatores de contribuicao do aquecedor e do resfriador
 	 * Tendo esses valores eh aplicado o fator de contribuicao do ambiente
 	 * E retornado a temperatura atualizada*/
 	private int updateTemperatura() throws FileNotFoundException, IOException{
@@ -193,7 +192,7 @@ public class Temperatura extends Thread{
 		BufferedReader buffRead = new BufferedReader(fr);
 		
 		/*Lendo a temperatura do arquivo*/
-		Integer temperaturaAtual = Integer.parseInt(buffRead.readLine());//Le a linha e repassa para inteiro
+		Integer temperaturaAtual = Integer.parseInt(buffRead.readLine());
 		
 		fr = new FileReader(getArqTemperaturaAmbiente());
 		buffRead = new BufferedReader(fr);
@@ -210,7 +209,7 @@ public class Temperatura extends Thread{
 		//a temperatura ambiente altera sempre de 1 em 1, enquanto os atuadores alteram de 2 em 2
 		//Portanto, os atuadores conseguem sempre manipular a temperatura da estufa, pois se sobrepoem a temperatura ambiente
 		
-		/*Lendo contribuicao dos equipamentos no arquivo*/
+		/*Lendo contribuicao dos atuadores nos arquivos*/
 		fr = new FileReader(getArqContribuicaoAquecedor());
 		buffRead = new BufferedReader(fr);
 		Integer contribuicaoAquecedor = Integer.parseInt(buffRead.readLine());//contribuicao do aquecedor
@@ -221,7 +220,6 @@ public class Temperatura extends Thread{
 		
 		buffRead.close();
 		
-		//retorna a temperatura lida somada com os fatores de contribuicao dos atuadores e da temperatura ambiente
 		return temperaturaAtual + contribuicaoTemperaturaAmbiente + contribuicaoAquecedor + contribuicaoResfriador;
 	}
 	

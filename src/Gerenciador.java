@@ -1,22 +1,15 @@
 import java.io.IOException;
-import java.io.PrintStream;
+import java.io.ByteArrayOutputStream;
 import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Scanner;
-//vou ter que criar um objeto do servidor e repassar pros servidores do cliente
-//Ai usa o syncronized pra nao dar problema de concorrencia
-//As threads dos clientes devem chamar o método e esse método passa pros demais
 import java.util.Set;
 
 public class Gerenciador{
@@ -34,68 +27,81 @@ public class Gerenciador{
 	private static Integer limiarInfTemperatura;
 	private static boolean statusAquecedor;
 	private static boolean statusResfriador;
-	private static boolean statusSensorTemp;
 	
 	private static Integer umidadeSoloLida = 1;
 	private static Integer limiarSupUmidade;
 	private static Integer limiarInfUmidade;
-	private static boolean statusSensorUmidade;
 	private static boolean statusIrrigador;
 	
 	private static Integer co2Lido = 2;
 	private static Integer limiarSupCO2;
 	private static Integer limiarInfCO2;
-	private static boolean statusSensorCO2;
 	private static boolean statusInjetorCO2;
 	
 	private static ByteBuffer msgCliente;
 
-	/*Simuladores*/
+	// Simuladores
 	private static Temperatura ambiente = null;
 	private static UmidadeSolo solo = null;
 	private static CO2 ar = null;
 	
-	//Cada endereço remoto esta associado a um equipamento, assim quando um canal pedir uma msg vou identifica-lo pelo endereço remoto
+	// Cada endereço remoto esta associado a um equipamento, 
+	// assim quando um canal pedir uma msg vou identifica-lo pelo endereço remoto
 	static Map<SocketAddress, Integer> equipaments = null;
 	
-	private static String intToChar(int temperaturaInt) {
-		int aux = temperaturaInt;
-		char[] seqNumero = new char[4];
-		String r = "";
+	// Converte um inteiro para um vetor de bytes com seu valor binario
+	private static byte[] intToByte(int inteiro) {
+		int aux = inteiro;
+		byte[] seqNumero = new byte[4];
 		for(int i = 0; i < 4; i++) {
-			seqNumero[i] = (char) ((int)aux>>(i*8) & (int)0xFF);
-			r += String.valueOf(seqNumero[i]);
+			seqNumero[i] = (byte) ((aux>>(i*8)) & (int)0xff);
 		}
-		return r;
+		
+		return seqNumero;
+	}
+	
+	// Converte um array de bytes para seu valor inteiro
+	private static Integer byteToInt(int position, byte[] arr) {
+		int num = 0;
+		for(int i = 3; i >= 0; i--) {
+			num = num<<8;
+			num = num | (arr[i+position] & (int)0xff);
+		}
+		return num;
 	}
 	
 	private static void register(Selector selector, ServerSocketChannel serverSocket) throws IOException {
-        SocketChannel channel = serverSocket.accept();//Abre um socket pro canal
-        channel.configureBlocking(false);//configura ele como nao bloqueante
-        channel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);//Coloca um selector pra monitorar esse socket
+		// Abre um socket pro canal
+        SocketChannel channel = serverSocket.accept();
+        // Configura o socket como nao bloqueante
+        channel.configureBlocking(false);
+        // Coloca um selector pra monitorar esse socket
+        channel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
     }
 	
+	// Recebe dados pelo canal passado
 	public static void receive(SelectionKey key) throws IOException {
-		ByteBuffer buffer = ByteBuffer.allocate(256);
 		SocketChannel channel = (SocketChannel) key.channel();
+		ByteBuffer buffer = ByteBuffer.allocate(256);
 		byte[] arr;
-		int byteReceive = 0;
+		int bytesReceived = 0;
 		
 		do {
-			byteReceive = channel.read(buffer);
-		}while(byteReceive <= 0);
+			bytesReceived = channel.read(buffer);
+		}while(bytesReceived <= 0);
 		
 		arr = buffer.array();		
 		byte header = arr[0];
-		if(header == '1'){			
-			SocketAddress clientAddress  = channel.getRemoteAddress();//Pego o endereço remoto do equipamento
-			channel.read(buffer);//le e Repassa pro buffer o que foi enviado pelo cliente
-			buffer.flip();//Vai pra posicao zero do buffer
-			
-			// Registra a SelectionKey associado a esse equiamento na Map
+		
+		
+		if(header == '1'){	// Mensagem 1: Identificacao de Equipamento
+			// Recupera o endereco remoto do equipamento pelo canal
+			SocketAddress clientAddress  = channel.getRemoteAddress();			
+			// Registra o endereco associada a esse equipamento na Map
 			equipaments.put(clientAddress, arr[1]-'0');
 			
-			switch(arr[1]) {/*Registra os canais de comunica, assim quando um SelectionKey de sensorTemperatura vier, por ex, ja repassarei para o aquecedor(se for necessario) */
+			// Armazena o canal na variavel correta, de acordo com o 2o campo da mensagem
+			switch(arr[1]) {
 				case '1':
 					System.out.println("Sensor de Temperatura Registrado!");
 					sensorTemperatura = channel;
@@ -130,15 +136,16 @@ public class Gerenciador{
 					break;
 			}
 			
-			//Repassa mensagem 2 (confirmacao)
+			// Responde com a mensagem 2 (confirmacao) pelo canal
 			String answer = "2";
 			buffer = ByteBuffer.wrap(answer.getBytes());
-	        channel.write(buffer);
-	        
-		} else if(header == '3'){	// Leitura dos recebida dos sensores
+	        channel.write(buffer);	        
+		} else if(header == '3'){	// Mensagem 3: Leitura dos sensores
 			// Identifica o sensor
-			SocketAddress clientAddress  = channel.getRemoteAddress(); // Pego o endereço remoto do equipamento
-			Integer id = equipaments.get(clientAddress);	/*Pega o id associado ao endereço remoto do equipamento*/
+			SocketAddress clientAddress  = channel.getRemoteAddress(); // Recupera o endereco remoto do equipamento
+			Integer id = equipaments.get(clientAddress);	// Recupera o id do equipamento
+			
+			// Armazena o valor lido na variavel correspondente ao sensor
 			switch(id) {
 				case 1:
 					temperaturaLida = byteToInt(2, arr);
@@ -146,11 +153,12 @@ public class Gerenciador{
 				case 2:
 					umidadeSoloLida = byteToInt(2, arr);
 					break;
-				case 3:
+				case 3:					
 					co2Lido = byteToInt(2, arr);
 					break;
 			}
-		} else if(header == '6') {	// Pedido de configuracao de limiares pelo cliente
+		} else if(header == '6') {	// Mensagem 6: Pedido de configuracao de limiares pelo cliente
+			// Identifica os valores dos campos da mensagem
 			char tipoParametro = (char)arr[1];
 			int minVal = byteToInt(2, arr);
 			int maxVal = byteToInt(6, arr);
@@ -173,84 +181,98 @@ public class Gerenciador{
 			
 			printString += minVal + " a " + maxVal;
 			System.out.println(printString);
-			
-			msgCliente = ByteBuffer.wrap(printString.getBytes());
-		} else if(header == '7') {
+		} else if(header == '7') {	// Mensagem 7: Requisicao de Leitura dos Sensores
 			String printString = "Enviando leitura de ";
+			ByteArrayOutputStream byteArray = new ByteArrayOutputStream();	//estrutura para concatenar arrays de bytes
+						
+			// Identifica o tipo de sensor requisitado e monta a resposta no buffer "msgCliente"
+			//que sera enviado no metodo 'send'
 			char tipoParametro = (char)arr[1];
 			switch(tipoParametro) {
 				case '1':
 					printString += "temperatura: " + temperaturaLida.toString();
-					msgCliente = ByteBuffer.wrap(("8" + tipoParametro + intToChar(temperaturaLida.intValue())).getBytes());
+					
+					byteArray.write(("8" + tipoParametro).getBytes());
+					byteArray.write(intToByte(temperaturaLida.intValue()));
+					msgCliente = ByteBuffer.wrap(byteArray.toByteArray());
 					break;
 				case '2':
 					printString += "umidade: " + umidadeSoloLida.toString();
-					msgCliente = ByteBuffer.wrap(("8" + tipoParametro + intToChar(umidadeSoloLida.intValue())).getBytes());
+					
+					byteArray.write(("8" + tipoParametro).getBytes());
+					byteArray.write(intToByte(umidadeSoloLida.intValue()));
+					msgCliente = ByteBuffer.wrap(byteArray.toByteArray());
 					break;
 				case '3':
 					printString += "CO2: " + co2Lido.toString();
-					msgCliente = ByteBuffer.wrap(("8" + tipoParametro + intToChar(co2Lido.intValue())).getBytes());
+					
+					byteArray.write(("8" + tipoParametro).getBytes());
+					byteArray.write(intToByte(co2Lido.intValue()));
+					msgCliente = ByteBuffer.wrap(byteArray.toByteArray());
 					break;	
 			}
 			System.out.println(printString);
 		}
-	}
-
-	private static Integer byteToInt(int position, byte[] arr) {
-		int num = 0;
-		for(int i = 3; i >= 0; i--) {
-			num = num<<8;
-			num = num + (arr[i+position]&0xff);
-		}
-		
-		return num;
-	}
+	}	
 	
-	// Responde a uma solicitacao 
+	// Envia dados pelo canal passado 
 	public static void send(SelectionKey key) throws IOException {
-		SocketChannel channel = (SocketChannel) key.channel();
-		SocketAddress clientAddress  = channel.getRemoteAddress();	// Pego o endereço remoto do equipamento
-		Integer idEquipaments = equipaments.get(clientAddress);	// Busca o id do equipamento associado ao enderço remoto
+		// Recupera o endereco remoto do equipamento pelo canal
+		SocketChannel channel = (SocketChannel) key.channel();	
 		
-		//Caso o equipamento solicite a leitura mas nao tenha sido identificado
+		// Registra o endereco associada a esse equipamento na Map
+		SocketAddress clientAddress  = channel.getRemoteAddress();
+		
+		// Identifica o equipamento
+		Integer idEquipaments = equipaments.get(clientAddress);
+		
+		// Caso o equipamento solicite a leitura mas nao tenha sido identificado
 		if(idEquipaments == null) 
 			return;
 		
 		switch(idEquipaments) {
 			case 4:
-				if(statusAquecedor == false && temperaturaLida < limiarInfTemperatura) {//Se atuador estiver desligado e temperaturaLida estiver a baixo do limiar
+				// Checa temperaturaLida e compara com os valores dos limiares
+				// Se o Aquecedor estiver desligado e temperaturaLida estiver abaixo do limiar
+				if(statusAquecedor == false && temperaturaLida < limiarInfTemperatura) { 
 					System.out.println("Servidor informando ao aquecedor para ligar!");
+					// Envia mensagem 4 ao Aquecedor (ligar)
 					ByteBuffer msg = ByteBuffer.wrap("4".getBytes());
 					aquecedor.write(msg);
-					statusAquecedor = true;//Significa que foi enviado a msg para o atuador se ligar
-				}else if(statusAquecedor == true && temperaturaLida >= limiarSupTemperatura) {//Se atuador estiver ligado
+					statusAquecedor = true;
+				} else if(statusAquecedor == true && temperaturaLida >= limiarSupTemperatura) {
 					System.out.println("Servidor informando ao aquecedor para desligar!");
+					// Envia mensagem 5 ao Aquecedor (desligar)
 					ByteBuffer msg = ByteBuffer.wrap("5".getBytes());
 					aquecedor.write(msg);
 					statusAquecedor = false;
 				}
 				break;
+				// Similarmente para o Resfriador e para os outro atuadores
 			case 5:
-				if(statusResfriador == false && temperaturaLida > limiarSupTemperatura) {//Se atuador estiver desligado e temperaturaLida estiver a cima do limiar
+				//Se o Resfriador estiver desligado e temperaturaLida estiver acima do limiar
+				if(statusResfriador == false && temperaturaLida > limiarSupTemperatura) {
 					System.out.println("Servidor informando ao resfriador para ligar!");
+					// Envia mensagem 4 ao Resfriador (ligar)
 					ByteBuffer msg = ByteBuffer.wrap("4".getBytes());
 					resfriador.write(msg);
-					statusResfriador = true;//Significa que foi enviado a msg para o atuador se ligar
-				}else if(statusResfriador == true && temperaturaLida <= limiarInfTemperatura) {//Se atuador estiver ligado
+					statusResfriador = true;
+				} else if(statusResfriador == true && temperaturaLida <= limiarInfTemperatura) {
 					System.out.println("Servidor informando ao resfriador para desligar!");
+					// Envia mensagem 5 ao Aquecedor (desligar)
 					ByteBuffer msg = ByteBuffer.wrap("5".getBytes());
 					resfriador.write(msg);
 					statusResfriador = false;
 				}
 				break;
 			case 6:
-				if(statusIrrigador == false && umidadeSoloLida < limiarInfUmidade) {//Liga
+				if(statusIrrigador == false && umidadeSoloLida < limiarInfUmidade) {
 					System.out.println("Servidor informando ao irrigador para ligar!");
 					ByteBuffer msg = ByteBuffer.wrap("4".getBytes());
 					irrigador.write(msg);
 					statusIrrigador = true;
-				}else if(statusIrrigador == true && umidadeSoloLida >= limiarSupUmidade) {//desliga
-					System.out.println("Servidor informando ao Irrigador para desligar");
+				}else if(statusIrrigador == true && umidadeSoloLida >= limiarSupUmidade) {
+					System.out.println("Servidor informando ao irrigador para desligar");
 					ByteBuffer msg = ByteBuffer.wrap("5".getBytes());
 					irrigador.write(msg);
 					statusIrrigador = false;
@@ -271,7 +293,8 @@ public class Gerenciador{
 				}
 				break;
 			case 8:
-				if(msgCliente != null) {//Se houver mensagem a ser enviada
+				// Se houver mensagem a ser enviada para o cliente no buffer e o mesmo estiver requisitando
+				if(msgCliente != null) {
 					cliente.write(msgCliente);
 					msgCliente = null;
 				}
@@ -282,25 +305,22 @@ public class Gerenciador{
 	private static void setStatusDefaultEquipamentos() {
 		statusAquecedor = false;
 		statusResfriador = false;
-		statusSensorTemp = false;
-		statusSensorUmidade = false;
 		statusIrrigador = false;
-		statusSensorCO2 = false;
 		statusInjetorCO2 = false;
 		
-		limiarInfCO2 = 300;
-		limiarSupCO2 = 310;
-		co2Lido = 300;
+		co2Lido = 160;
+		limiarSupCO2 = 170;
+		limiarInfCO2 = 150;
 		CO2.setContribuicaoCO2(0);
 		
-		umidadeSoloLida = 40;
-		limiarSupUmidade = 50;
-		limiarInfUmidade = 40;
+		umidadeSoloLida = 15;
+		limiarSupUmidade = 20;
+		limiarInfUmidade = 5;
 		UmidadeSolo.setContribuicaoUmidadeEquip(0);
 		
-		limiarSupTemperatura = 20;
-		limiarInfTemperatura = 10;
-		temperaturaLida = 0;
+		temperaturaLida = 28;
+		limiarSupTemperatura = 32;
+		limiarInfTemperatura = 25;
 		ambiente.setContribuicaoAquecedor(0);
 		ambiente.setContribuicaoResfriador(0); //A contribuicao do equipamento eh inicializado com 0 pois os atuadores inicializam desligados		
 	}
@@ -320,7 +340,6 @@ public class Gerenciador{
 			if(statusAquecedor == false)//Se o aquecedor nao estiver ligado
 				ambiente.setContribuicaoAquecedor(0);
 		}else if(equip == sensorUmidade) {
-			statusSensorUmidade = false;
 			System.out.println("Sensor de Umidade foi desconectado!");
 		}else if(equip == irrigador) {
 			System.out.println("Irrigador foi desconectado!");
@@ -331,14 +350,12 @@ public class Gerenciador{
 			System.out.println("Injetor foi desconectado!");
 			CO2.setContribuicaoCO2(0);
 		}else if(equip == sensorCO2) {
-			statusSensorCO2 = false;
 			System.out.println("Sensor de CO2 foi desconectado!");
 		}else if(equip == cliente) {
 			System.out.println("Cliente foi desconectado!");
 		}
 	}
 	
-	/* Administra os canais de comunicacao e inicializa a simulacao da temperatura*/
 	public static void main(String[] argc) throws IOException{
 		Selector selector  = Selector.open();
 		ServerSocketChannel serverSocket = ServerSocketChannel.open();
@@ -352,12 +369,13 @@ public class Gerenciador{
 		}
 		serverSocket.configureBlocking(false);
 		
-		serverSocket.register(selector, SelectionKey.OP_ACCEPT);// Coloca o selector para administrar a escuta dos canais 
-		equipaments = new HashMap<SocketAddress, Integer>();
+		serverSocket.register(selector, SelectionKey.OP_ACCEPT);// Coloca o selector para administrar a escuta dos canais
 		
+		equipaments = new HashMap<SocketAddress, Integer>();		
 		
+		// Inicializa a simulacao da variacao dos parametros
 		ambiente = new Temperatura();
-		ambiente.start();//Inicializa a simulacao da temperatura Ambiente
+		ambiente.start();
 		solo = new UmidadeSolo();
 		solo.start();
 		ar = new CO2();
@@ -368,13 +386,14 @@ public class Gerenciador{
 		
 		Set<SelectionKey> selectedKeys;
 		while(true) {
+			// Recupera a lista de equipamentos que fizeram algo no canal
 			selector.select();
-			selectedKeys = selector.selectedKeys();//Pega a lista de canais que fizeram algo no canal
+			selectedKeys = selector.selectedKeys();
 			
 			for(Iterator<SelectionKey> it = selectedKeys.iterator(); it.hasNext();) {
 				SelectionKey key = it.next();
 				
-				if(key.isAcceptable()) {//Canal que deseja se registrar no servidor
+				if(key.isAcceptable()) { // Canal que deseja se registrar no servidor
 					try {
 						register(selector, serverSocket);
 					}catch(Exception e) {
@@ -382,8 +401,9 @@ public class Gerenciador{
 					}
 				}
 				
-				if(key.isValid() && key.isReadable()) {//Algum canal se comunicou
+				if(key.isValid() && key.isReadable()) { // Algum equipamento se comunicou
 					try{
+						// Le e trata a mensagem
 						receive(key);
 					}catch(Exception e) {						
 						/* Se o Equipamento desligar e for captado algo no canal

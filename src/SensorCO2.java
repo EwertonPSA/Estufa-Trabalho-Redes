@@ -1,4 +1,5 @@
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
@@ -44,46 +45,49 @@ public class SensorCO2 {
 	}
 	
 	//retorna a leitura do nivel de CO2
-	private String readFileCO2() throws FileNotFoundException, IOException {
+	private byte[] readFileCO2() throws FileNotFoundException, IOException {
 		FileReader fr = new FileReader(CO2.getArqCO2());	//arquivo do CO2
 		BufferedReader buffRead = new BufferedReader(fr);	//leitor
-		int CO2Int = Integer.parseInt(buffRead.readLine());//Le como string, passa pra inteiro
-		String sequenciaNumero = intToChar(CO2Int);//Obtem o inteiro como representacao em string (bytes do inteiro como caracteres)
+		int CO2Int = Integer.parseInt(buffRead.readLine());//Le como string, passa pra inteiro		
 		System.out.println("Leitura de CO2:" + CO2Int + "ppm");
 		buffRead.close();
-		return sequenciaNumero;
+		
+		//retorna o valor do nivel de CO2 como um vetor de bytes
+		return intToByte(CO2Int);
 	}
 	
-	/* Pega um valor inteiro e passa pra uma string com os bytes do inteiro como caracteres
-	 * Ele eh usado para obter a representacao correta do inteiro em 4 bytes
-	 * No qual deve ser incluido no corpo da mensagem a ser enviada pro servidor*/
-	private String intToChar(int temperaturaInt) {
-		int aux = temperaturaInt;
-		byte[] seqNumero = new byte[4];		//salva os bytes do inteiro
+	// Converte um inteiro para um vetor de bytes com seu valor binario
+	private static byte[] intToByte(int inteiro) {
+		int aux = inteiro;
+		byte[] seqNumero = new byte[4];
 		for(int i = 0; i < 4; i++) {
-			seqNumero[i] = (byte) (aux>>(i*8) & 0xff);	//separa os bytes com bit shift e operacao and
+			seqNumero[i] = (byte) ((aux>>(i*8)) & (int)0xff);
 		}
-		String r = new String(seqNumero);	//transforma os bytes em string
-		return r;
+		
+		return seqNumero;
 	}
 
-	//envia a leitura do nivel de CO2 a cada segundo
+	// Envia a leitura do nivel de CO2 a cada segundo
 	public void communicate() throws InterruptedException {
 		ByteBuffer buffer = ByteBuffer.allocate(256);
 		String msgSensor;
-		header = "3";	//header da mensagem de envio de leitura
+		header = "3";	//header da mensagem de envio de leitura		
 		
 		while(true) {
 			TimeUnit.SECONDS.sleep(1);
+			ByteArrayOutputStream byteArray = new ByteArrayOutputStream();	//estrutura para concatenar arrays de bytes
 			try {//monta a mensagem
-				msgSensor = header + idEquipamento + readFileCO2();//Header + id + co2
+				msgSensor = header + idEquipamento;//Header + id
+				byteArray.write(msgSensor.getBytes());
+				
+				byteArray.write(readFileCO2());	//concatena com o novo valor do nivel de CO2
 			}catch(Exception e) {
 				System.out.println("Problema ao abrir o arquivo para leitura!");
 				return;
 			}
 			
-			try {/*Envia o co2 pro gerenciador*/
-				buffer = ByteBuffer.wrap(msgSensor.getBytes());
+			try {/*Envia a mensagem ao gerenciador*/
+				buffer = ByteBuffer.wrap(byteArray.toByteArray());
 				client.write(buffer);
 				buffer.clear();
 			}catch(Exception e) {

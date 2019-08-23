@@ -15,17 +15,17 @@ public class CO2 extends Thread{
 	private static String pathContribuicaoCO2 = "contribuicaoCO2.txt";	//arquivo de contribuicao do injetor
 	private static File arqCO2 = null;
 	private static File arqContribuicaoCO2 = null;
-	private static int contribuicaoCO2Ambiente = -1;	//ambiente (fora da estuda) sempre diminui em 1 o nivel de CO2
-	private static int timeUpdate = 1;	//tempo para atalizar o valor do nivel de CO2 (segundos)
+	private static int contribuicaoCO2Ambiente = -1;	//ambiente (fora da estufa) sempre diminui em 1 o nivel de CO2
+	private static int timeUpdate = 1;	//tempo para atualizar o valor do nivel de CO2 (segundos)
 
-	/* Metodo que retorna o arquivo de co2 para lida ou escrita*/
+	/* Metodo que retorna o arquivo de co2 para leitura ou escrita*/
 	public static File getArqCO2() throws IOException {
 		if(arqCO2 == null)
 			createFileCO2();
 		return arqCO2;
 	}
 	
-	/* Metodo que retorna o arquivo de contribuicao para lida ou escrita*/
+	/* Metodo que retorna o arquivo de contribuicao para leitura ou escrita*/
 	public static File getArqContribuicaoCO2() throws IOException {
 		if(arqContribuicaoCO2 == null)
 			createFileContribuicaoCO2();
@@ -47,7 +47,7 @@ public class CO2 extends Thread{
 		}
 	}
 
-	/* Esse metodo realiza a cricao do arquivo de co2(utilizado para simular o co2) caso ele nao exista
+	/* Esse metodo realiza a criacao do arquivo de co2(utilizado para simular o co2) caso ele nao exista
 	 * Caso ele ja se encontre criado eh feito uma checagem no arquivo, verificando se ele esta vazio(se isto ocorrer passa o valor default)
 	 * Se ja se encontrar dados no arquivo entao nao eh feito nada*/
 	private static void createFileCO2() throws IOException {
@@ -98,7 +98,7 @@ public class CO2 extends Thread{
 	}
 	
 	/* Esse metodo obtem o co2 atual lendo o arquivo co2.txt
-	 * E pega o fator de contribuicao do arquivo contribuicao.txt
+	 * E pega o fator de contribuicao do injetor
 	 * Tendo esses valores eh aplicado o fator de contribuicao do ambiente
 	 * E retornado o nivel de co2 atualizado*/
 	private int updateCO2() throws FileNotFoundException, IOException{
@@ -106,7 +106,7 @@ public class CO2 extends Thread{
 		BufferedReader buffRead = new BufferedReader(fr);
 		Integer contribuicaoCO2Equip;
 		/*Lendo o co2 do arquivo*/
-		Integer CO2Atual = Integer.parseInt(buffRead.readLine());//Le a linha e repassa para inteiro
+		Integer CO2Atual = Integer.parseInt(buffRead.readLine());
 		
 		if(CO2Atual <= 0) {	//quando nivel de co2 chega a 0, para de diminuir
 			contribuicaoCO2Ambiente = 0;
@@ -117,11 +117,10 @@ public class CO2 extends Thread{
 		/*Lendo contribuicao do injetor no arquivo*/
 		fr = new FileReader(getArqContribuicaoCO2());
 		buffRead = new BufferedReader(fr);
-		contribuicaoCO2Equip = Integer.parseInt(buffRead.readLine());//Atualiza a contribuicao do equipamento
+		contribuicaoCO2Equip = Integer.parseInt(buffRead.readLine());
 		
 		buffRead.close();
 		
-		//retorna o nivel de co2 somado com os fatores de contribuicao
 		return CO2Atual + contribuicaoCO2Ambiente + contribuicaoCO2Equip;
 	}
 	

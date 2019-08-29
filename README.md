@@ -6,7 +6,7 @@ No arquivo Especificação Da Estufa.pdf é especificado o problema para o desen
 Nossa aplicação foi implementada na linguagem Java 8 com a IDE Eclipse no sistema operacional Windows 10. Seu funcionamento ocorre de acordo com o protocolo estabelecido na parte 1 do trabalho.
 
 ### Execução
-Os processos de cada dispositivo podem ser executados buscando o diretório /Simulacao no diretório principal da aplicação pelo Prompt de Comando do Windows e inserindo              o comando: 
+Os processos de cada dispositivo podem ser executados buscando o diretório /Simulador no diretório principal da aplicação pelo Prompt de Comando do Windows e inserindo              o comando: 
  
 java -jar <nome do executável>.jar 
 

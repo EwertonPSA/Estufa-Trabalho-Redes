@@ -3,7 +3,7 @@ Nesta aplicação, as condições da estufa são conﬁguradas, monitoradas e co
 
 Este trabalho foi desenvolvido em duas etapas: Estabelecer protocolo de comunicação entre os equipamentos e desenvolvimento da da aplicação. No arquivo protocolo_Comunicação_Equipamento.pdf é apresentado o protocolo de comunicação usado na rede de comunicação entre os equipamentos.
 
-Nossa aplicação foi implementada na linguagem Java 8 com a IDE Eclipse no sistema operacional Windows 10. Seu funcionamento ocorre de acordo com o protocolo estabelecido na parte 1 do trabalho.
+Nossa aplicação foi implementada na linguagem Java 8 com a IDE Eclipse no sistema operacional Windows 10. Seu funcionamento ocorre de acordo com o protocolo estabelecido na primeira etapa do trabalho.
 
 ### Execução
 Os processos de cada dispositivo podem ser executados buscando o diretório /Simulador no diretório principal da aplicação pelo Prompt de Comando do Windows e inserindo              o comando: 

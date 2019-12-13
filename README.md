@@ -1,7 +1,7 @@
 # Estufa-Trabalho-Redes
 No arquivo [Redes] Trabalho-Parte 1.pdf é apresentado o protocolo de comunicação usado na rede de comunicação entre os equipamentos.
 
-No arquivo Especificação Da Estufa.pdf é especificado o problema para o desenvolvimento da aplicação.
+No arquivo Proposta_Trabalho_Redes.pdf é apresentado mais detalhes sobre o escopo do projeto.
 
 Nossa aplicação foi implementada na linguagem Java 8 com a IDE Eclipse no sistema operacional Windows 10. Seu funcionamento ocorre de acordo com o protocolo estabelecido na parte 1 do trabalho.
 

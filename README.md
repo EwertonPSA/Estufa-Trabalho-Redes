@@ -1,4 +1,6 @@
 # Estufa-Trabalho-Redes
+Nesta aplicação, as condições da estufa são conﬁguradas, monitoradas e controladas por um gerenciador, que se comunica com os sensores/atuadores dentro da estufa e pode receber conﬁgurações ou responder consultas de um cliente externo.
+
 No arquivo [Redes] Trabalho-Parte 1.pdf é apresentado o protocolo de comunicação usado na rede de comunicação entre os equipamentos.
 
 No arquivo Proposta_Trabalho_Redes.pdf é apresentado mais detalhes sobre o escopo do projeto.

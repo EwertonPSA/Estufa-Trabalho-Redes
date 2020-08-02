@@ -9,6 +9,9 @@ No arquivo [protocolo_Comunicação_Equipamento.pdf](https://github.com/EwertonP
 
 Nossa aplicação foi implementada na linguagem Java 8 com a IDE Eclipse no sistema operacional Windows 10. Seu funcionamento ocorre de acordo com o protocolo estabelecido na primeira etapa do trabalho.
 
+# Detalhes importantes de implementação em java
+O gerenciador se comporta como servidor e os demais equipamentos como cliente. Para que o gerenciador fizesse a leitura simultânea dos diferentes equipamentos foi necessário utilizar uma comunicação não bloqueante, sendo utilizado as bibliotecas ServerSocketChannel e SocketChannel. 
+
 # Execução
 Os processos de cada dispositivo podem ser executados buscando o diretório /Simulador no diretório principal da aplicação pelo Prompt de Comando do Windows e inserindo o comando: 
  

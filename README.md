@@ -17,7 +17,7 @@ java -jar <nome do executável>.jar
 Obs: O processo do Gerenciador deve ser o primeiro a ser executado. 
 
 # Observações 
-### Há 9 processos a serem executados: 
+### Há 9 processos a serem executados simultâneamente: 
 1. Cliente 
 2. Gerenciador 
 3. SensorTemperatura 

@@ -5,7 +5,7 @@ Este trabalho foi desenvolvido em duas etapas:
 1) Definir um protocolo de comunicação entre os sensores, atuadores e gerenciador.
 2) Desenvolver a aplicação em uma linguagem de programação. 
 
-No arquivo [protocolo_Comunicação_Equipamento.pdf](https://github.com/EwertonPSA/Estufa-Trabalho-Redes/blob/master/protocolo_Comunica%C3%A7%C3%A3o_Equipamento.pdf) é apresentado o protocolo comunicação entre os equipamentos usado na rede.
+No arquivo [protocolo_Comunicação_Equipamento.pdf](https://github.com/EwertonPSA/Estufa-Trabalho-Redes/blob/master/protocolo_Comunica%C3%A7%C3%A3o_Equipamento.pdf) é apresentado o protocolo comunicação entre os equipamentos.
 
 Nossa aplicação foi implementada na linguagem Java 8 com a IDE Eclipse no sistema operacional Windows 10. Seu funcionamento ocorre de acordo com o protocolo estabelecido na primeira etapa do trabalho.
 

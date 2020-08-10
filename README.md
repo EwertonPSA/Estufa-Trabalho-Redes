@@ -1,5 +1,5 @@
 # Estufa-Trabalho-Redes
-Nesta aplicação as condições da estufa são conﬁguradas, monitoradas e controladas através pelo um gerenciador. O gerenciador se comunica por meio da rede com os sensores/atuadores dentro da estufa, além disso o gerenciador pode receber conﬁgurações(Como definir temperatura estufa) ou responder consultas de um cliente externo das condições da estufa. No arquivo [Proposta_Trabalho_Redes.pdf](https://github.com/EwertonPSA/Estufa-Trabalho-Redes/blob/master/Proposta_Trabalho_Redes.pdf) é apresentado mais detalhes sobre o escopo do projeto e os requisitos a serem desenvolvidos para a aplicação.
+Nesta aplicação as condições da estufa são conﬁguradas, monitoradas e controladas através do gerenciador. O gerenciador se comunica por meio da rede com os sensores/atuadores dentro da estufa, além disso o gerenciador pode receber conﬁgurações(Como definir temperatura estufa) ou responder consultas de um cliente externo das condições da estufa. No arquivo [Proposta_Trabalho_Redes.pdf](https://github.com/EwertonPSA/Estufa-Trabalho-Redes/blob/master/Proposta_Trabalho_Redes.pdf) é apresentado mais detalhes sobre o escopo do projeto e os requisitos a serem desenvolvidos para a aplicação.
 
 Este trabalho foi desenvolvido em duas etapas: 
 1) Definir um protocolo de comunicação entre os sensores, atuadores e gerenciador.
